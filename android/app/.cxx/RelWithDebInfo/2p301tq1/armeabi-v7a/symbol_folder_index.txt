@@ -1,0 +1,1 @@
+/Users/mathewsmittathani/Documents/devkit_flutter_food_efeedor/build/app/intermediates/cxx/RelWithDebInfo/2p301tq1/obj/armeabi-v7a

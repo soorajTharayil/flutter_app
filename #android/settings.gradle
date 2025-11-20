@@ -1,0 +1,40 @@
+// pluginManagement {
+//     repositories {
+//         google()
+//         mavenCentral()
+//         gradlePluginPortal()
+//     }
+// }
+
+// dependencyResolutionManagement {
+//     repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+//     repositories {
+//         google()
+//         mavenCentral()
+//     }
+// }
+
+// rootProject.name = 'devkit_flutter_food_efeedor'
+// include ':app'
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+    plugins {
+        id "com.android.application" version "8.0.2"
+        id "dev.flutter.flutter-gradle-plugin" version "3.0.0" // Make sure to use the latest version
+    }
+}
+
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+rootProject.name = "devkit_flutter_food_efeedor"
+include(":app")
