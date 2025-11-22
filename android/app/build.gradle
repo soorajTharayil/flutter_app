@@ -1,0 +1,75 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    id "dev.flutter.flutter-gradle-plugin"
+}
+
+// Define versionCode and versionName if not passed from command line
+def flutterVersionCode = project.hasProperty('flutterVersionCode') ? project.flutterVersionCode : 5
+def flutterVersionName = project.hasProperty('flutterVersionName') ? project.flutterVersionName : "1.0.5"
+
+// Load keystore info from key.properties
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+def keystoreStoreFile = null
+def hasValidKeystore = false
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    keystoreStoreFile = keystoreProperties['storeFile']
+    hasValidKeystore = (keystoreStoreFile != null && keystoreStoreFile != 'null' && keystoreStoreFile != '')
+}
+
+android {
+    namespace = "com.efeedor.feedback"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = "26.3.11579264"  // Force use installed NDK version
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+    }
+
+    defaultConfig {
+        applicationId "com.efeedor.feedback"
+        minSdkVersion flutter.minSdkVersion
+        targetSdkVersion 35
+        versionCode flutterVersionCode.toInteger()
+        versionName flutterVersionName
+    }
+
+    signingConfigs {
+        release {
+            if (hasValidKeystore) {
+                keyAlias keystoreProperties['keyAlias']
+                keyPassword keystoreProperties['keyPassword']
+                storeFile file(keystoreStoreFile)
+                storePassword keystoreProperties['storePassword']
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            // Use release signing if keystore exists, otherwise fall back to debug signing
+            // This ensures the APK is always signed and can be installed
+            if (hasValidKeystore) {
+                signingConfig signingConfigs.release
+            } else {
+                // Fallback to debug signing if no keystore is configured
+                // This allows testing APKs without a release keystore
+                signingConfig signingConfigs.debug
+            }
+            minifyEnabled true
+            shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}

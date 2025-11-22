@@ -1,0 +1,2 @@
+/Users/mathewsmittathani/Documents/flutter_project_2_final_realfeedback/android/app/.cxx/RelWithDebInfo/2e2m1i1a/x86_64/CMakeFiles/edit_cache.dir
+/Users/mathewsmittathani/Documents/flutter_project_2_final_realfeedback/android/app/.cxx/RelWithDebInfo/2e2m1i1a/x86_64/CMakeFiles/rebuild_cache.dir

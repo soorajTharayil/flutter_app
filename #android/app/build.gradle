@@ -1,0 +1,30 @@
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+    id 'com.google.gms.google-services'
+    id 'dev.flutter.flutter-gradle-plugin' // required for Flutter
+}
+
+android {
+    namespace "app.efeedor.feedback"
+    compileSdk 33
+
+    defaultConfig {
+        applicationId "app.efeedor.feedback"
+        minSdk 21
+        targetSdk 35
+        versionCode 5
+        versionName "1.0.5"
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.debug
+        }
+    }
+}
+
+dependencies {
+    implementation 'androidx.multidex:multidex:2.0.1'
+}

@@ -1,0 +1,2 @@
+/Users/mathewsmittathani/Documents/devkit_flutter_food_efeedor/android/app/.cxx/RelWithDebInfo/2p301tq1/armeabi-v7a/CMakeFiles/edit_cache.dir
+/Users/mathewsmittathani/Documents/devkit_flutter_food_efeedor/android/app/.cxx/RelWithDebInfo/2p301tq1/armeabi-v7a/CMakeFiles/rebuild_cache.dir
