@@ -138,6 +138,50 @@ $route['deviceApproval/checkStatus'] = 'DeviceApprovalController/checkStatus';
 $config['base_url'] = 'https://your-domain.efeedor.com/';
 ```
 
+## 👤 User Guide - First Time Setup
+
+### Post-Installation Steps
+
+After installing the app, follow these steps to get started:
+
+#### Step 1: Domain Entry
+1. **Launch the app** - Open the Efeedor Healthcare Feedback System app
+2. **Domain Page** - You will be automatically redirected to the domain entry page
+3. **Enter Domain** - In the input box, type: `demo`
+4. **Submit** - Click the **Proceed** button to continue
+
+#### Step 2: Sign In
+1. **Sign In Page** - After submitting the domain, you will be redirected to the sign in page
+2. **Enter Credentials**:
+   - **Email/Username**: `demo@efeedor.com`
+   - **Password**: `Demo@123`
+3. **Submit** - Click the **Submit** button to sign in
+
+#### Step 3: Admin Approval
+1. **Approval Request** - After signing in, you will be redirected to the admin approval page
+2. **Request Access** - The system will automatically send an approval request to the administrator
+3. **Contact for Approval** - To expedite the approval process, please contact the administrator:
+   - **Phone**: [9562812784]
+   - **Note**: Approval requests are typically processed within 48 hours. Contacting the administrator directly can help expedite the process.
+
+#### Step 4: Access Dashboard
+1. **Wait for Approval** - The app will display a waiting screen while your device is pending approval
+2. **Approval Notification** - Once approved by the administrator, you will automatically be redirected to the **Amen. Peace. Dashboard** page
+3. **Future Access** - After initial approval, your device will be remembered and you can access the dashboard directly on subsequent logins
+
+### Important Notes
+- ⚠️ **First-time approval is required** - All new devices must be approved by an administrator before accessing the dashboard
+- ⏱️ **Approval Window** - Approval requests expire after 48 hours if not processed
+- 🔒 **One-time Approval** - Once your device is approved, it remains approved for future sessions
+- 📱 **Device-Specific** - Each device requires separate approval
+
+### Troubleshooting
+- If you don't receive approval within 48 hours, contact the administrator
+- Ensure you're using the correct domain (`demo`) and credentials
+- Check your internet connection if the approval status doesn't update
+
+---
+
 ## 🔐 Device Approval Flow
 
 ### Overview
