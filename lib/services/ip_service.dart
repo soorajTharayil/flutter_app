@@ -35,7 +35,7 @@ class IpService {
           }
         }
       } catch (e) {
-        print('Error getting public IP: $e');
+        // Silently fail
       }
       // Fallback: return placeholder, backend will get it from headers
       return '0.0.0.0';
@@ -54,7 +54,7 @@ class IpService {
         }
       }
     } catch (e) {
-      print('Error getting IP address: $e');
+      // Silently fail
     }
 
     // Fallback: return placeholder, backend will get actual IP

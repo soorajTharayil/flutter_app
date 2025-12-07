@@ -24,6 +24,7 @@ class _SignInState extends State<SignIn> {
 
   bool _obscureText = true;
   IconData _iconVisible = Icons.visibility_off;
+  bool _isSigningIn = false; // Loading state for Sign-In button
 
   // Efeedor themed colors (UI only)
   final Color _mainColor = efeedorBrandGreen; // primary action color
@@ -97,11 +98,18 @@ class _SignInState extends State<SignIn> {
   }
 
   Future<void> _loginUser() async {
+    // Set loading state
+    if (mounted) {
+      setState(() {
+        _isSigningIn = true;
+      });
+    }
+
     try {
       // Get domain
       final prefs = await SharedPreferences.getInstance();
       final domain = prefs.getString('domain') ?? '';
-      
+
       if (domain.isEmpty) {
         _showErrorDialog('Domain not found. Please enter domain first.');
         return;
@@ -109,7 +117,7 @@ class _SignInState extends State<SignIn> {
 
       // Step 1: Login using existing login.php endpoint
       final loginUrl = await getLoginEndpoint();
-      
+
       // Prepare login request (email and password only for login.php)
       final loginBody = {
         "userid": _emailController.text, // login.php expects "userid"
@@ -136,9 +144,11 @@ class _SignInState extends State<SignIn> {
         // If JSON parsing fails, check if it's HTML or PHP error
         final body = response.body;
         if (body.contains('<html') || body.contains('<!DOCTYPE')) {
-          _showErrorDialog('Server returned HTML instead of JSON. Please check server configuration.');
+          _showErrorDialog(
+              'Server returned HTML instead of JSON. Please check server configuration.');
         } else if (body.contains('Warning:') || body.contains('Notice:')) {
-          _showErrorDialog('Server error detected. Please contact administrator.');
+          _showErrorDialog(
+              'Server error detected. Please contact administrator.');
         } else if (body.trim().isEmpty) {
           _showErrorDialog('Empty response from server. Please try again.');
         } else {
@@ -159,7 +169,10 @@ class _SignInState extends State<SignIn> {
         // Save user data
         final permissions = <String, dynamic>{};
         responseData.forEach((key, value) {
-          if (key != 'status' && key != 'userid' && key != 'email' && key != 'name') {
+          if (key != 'status' &&
+              key != 'userid' &&
+              key != 'email' &&
+              key != 'name') {
             permissions[key] = value;
           }
         });
@@ -171,16 +184,18 @@ class _SignInState extends State<SignIn> {
         // Step 2: Check if device is already approved (one-time approval)
         final deviceInfo = await DeviceService.getDeviceInfo();
         final deviceId = deviceInfo['device_id']!;
-        
-        final isApproved = await DeviceService.isDeviceApproved(deviceId, domain);
-        
+
+        final isApproved =
+            await DeviceService.isDeviceApproved(deviceId, domain);
+
         if (isApproved) {
           // Device already approved - save login state and go directly to dashboard
           await prefs.setBool('is_logged_in', true);
-          await prefs.setInt('last_active_timestamp', DateTime.now().millisecondsSinceEpoch);
+          await prefs.setInt(
+              'last_active_timestamp', DateTime.now().millisecondsSinceEpoch);
           await prefs.setString('device_id', deviceId);
           await prefs.setString('domain', domain);
-          
+
           Fluttertoast.showToast(msg: "Login successful");
           Navigator.pushReplacement(
             context,
@@ -211,24 +226,34 @@ class _SignInState extends State<SignIn> {
           await prefs.setBool('waiting_for_approval', true);
           await prefs.setString('device_id', deviceId);
           await prefs.setString('domain', domain);
-          await prefs.setString('approval_requested_at', DateTime.now().toIso8601String());
-          
+          await prefs.setString(
+              'approval_requested_at', DateTime.now().toIso8601String());
+
           // Navigate to waiting approval page
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const WaitingApprovalPage()),
           );
         } else {
-          _showErrorDialog(requestResult['message'] ?? 'Failed to request device approval');
+          _showErrorDialog(
+              requestResult['message'] ?? 'Failed to request device approval');
         }
       } else {
         // Login failed
-        final message = responseData['message'] ?? 'Incorrect username or password';
+        final message =
+            responseData['message'] ?? 'Incorrect username or password';
         _showErrorDialog(message);
       }
     } catch (e) {
       print('Login Error: $e');
       _showErrorDialog("Error: ${e.toString()}");
+    } finally {
+      // Always restore button state when login completes
+      if (mounted) {
+        setState(() {
+          _isSigningIn = false;
+        });
+      }
     }
   }
 
@@ -283,7 +308,7 @@ class _SignInState extends State<SignIn> {
                       ),
                       const SizedBox(height: 10),
                       const Text(
-                        'Efeedor',
+                        '',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 24,
@@ -411,24 +436,34 @@ class _SignInState extends State<SignIn> {
                                       borderRadius: BorderRadius.circular(24),
                                     )),
                                   ),
-                                  onPressed: _loginUser,
+                                  onPressed: _isSigningIn ? null : _loginUser,
                                   child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
-                                    child: Text(
-                                      'Sign in',
-                                      style: TextStyle(
-                                          fontSize: 16,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600),
-                                      textAlign: TextAlign.center,
-                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 12),
+                                    child: _isSigningIn
+                                        ? const SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.4,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                      Colors.white),
+                                            ),
+                                          )
+                                        : Text(
+                                            'Sign in',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.w600),
+                                            textAlign: TextAlign.center,
+                                          ),
                                   )),
                             ),
                           ],
                         )),
                   ),
-                  // Healthcare-themed bottom section
-                  _HealthcareBottomSection(mainColor: _mainColor),
                 ],
               )
             ],
@@ -455,228 +490,6 @@ class _WaveClipperLogin extends CustomClipper<Path> {
 
     path.lineTo(size.width, 0);
     path.close();
-    return path;
-  }
-
-  @override
-  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
-}
-
-// Healthcare-themed bottom section with subtle visuals
-class _HealthcareBottomSection extends StatelessWidget {
-  final Color mainColor;
-
-  const _HealthcareBottomSection({required this.mainColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-      child: Column(
-        children: [
-          // Subtle wave design
-          ClipPath(
-            clipper: _BottomWaveClipper(),
-            child: Container(
-              height: 40,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    mainColor.withOpacity(0.05),
-                    mainColor.withOpacity(0.02),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          // Healthcare icons row (responsive)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // On small screens, reduce spacing and icon count
-              final isSmallScreen = constraints.maxWidth < 400;
-              final spacing = isSmallScreen ? 16.0 : 24.0;
-
-              final icons = [
-                Icons.favorite,
-                Icons.local_hospital,
-                Icons.health_and_safety,
-                if (!isSmallScreen) Icons.medical_services,
-              ];
-
-              final opacities = [
-                0.3,
-                0.25,
-                0.3,
-                if (!isSmallScreen) 0.25,
-              ];
-
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (int i = 0; i < icons.length; i++) ...[
-                    if (i > 0) SizedBox(width: spacing),
-                    _HealthcareIcon(
-                      icon: icons[i],
-                      color: mainColor.withOpacity(opacities[i]),
-                    ),
-                  ],
-                ],
-              );
-            },
-          ),
-          const SizedBox(height: 20),
-          // Tagline
-          Text(
-            'Empowering Healthcare Excellence',
-            style: TextStyle(
-              fontSize: 17,
-              fontWeight: FontWeight.w600,
-              color: Colors.grey[800],
-              letterSpacing: 0.5,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Technology-driven solutions for compassionate patient care',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-              height: 1.4,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 24),
-          // Trust indicators (responsive)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // On small screens, reduce spacing
-              final spacing = constraints.maxWidth < 400 ? 20.0 : 32.0;
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  _TrustIndicator(
-                    icon: Icons.verified,
-                    label: 'Secure',
-                    color: mainColor,
-                  ),
-                  SizedBox(width: spacing),
-                  _TrustIndicator(
-                    icon: Icons.cloud_done,
-                    label: 'Reliable',
-                    color: mainColor,
-                  ),
-                  SizedBox(width: spacing),
-                  _TrustIndicator(
-                    icon: Icons.support_agent,
-                    label: 'Support',
-                    color: mainColor,
-                  ),
-                ],
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-// Healthcare icon widget
-class _HealthcareIcon extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-
-  const _HealthcareIcon({
-    required this.icon,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: color.withOpacity(0.2),
-          width: 1.5,
-        ),
-      ),
-      child: Icon(
-        icon,
-        color: color,
-        size: 24,
-      ),
-    );
-  }
-}
-
-// Trust indicator widget
-class _TrustIndicator extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-
-  const _TrustIndicator({
-    required this.icon,
-    required this.label,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Icon(
-          icon,
-          color: color.withOpacity(0.7),
-          size: 20,
-        ),
-        const SizedBox(height: 6),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 11,
-            color: Colors.grey[600],
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-// Bottom wave clipper for subtle decoration
-class _BottomWaveClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final Path path = Path();
-    path.moveTo(0, 0);
-
-    // Create a subtle upward wave
-    path.quadraticBezierTo(
-      size.width * 0.25,
-      size.height * 0.3,
-      size.width * 0.5,
-      size.height * 0.2,
-    );
-    path.quadraticBezierTo(
-      size.width * 0.75,
-      size.height * 0.1,
-      size.width,
-      size.height * 0.2,
-    );
-
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, size.height);
-    path.close();
-
     return path;
   }
 

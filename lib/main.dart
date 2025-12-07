@@ -2,16 +2,22 @@ import 'dart:ui';
 
 import 'package:devkitflutter/config/constant.dart';
 import 'package:devkitflutter/widgets/keyboard_dismiss_wrapper.dart';
+import 'package:devkitflutter/services/op_localization_service.dart';
+import 'package:devkitflutter/services/offline_feedback_service.dart';
 
 import 'package:devkitflutter/ui/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-void main() {
+void main() async {
   // this function makes application always run in portrait mode
   WidgetsFlutterBinding.ensureInitialized();
   // Set preferred orientations synchronously for faster startup
   SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+  // Initialize OP localization service (only affects OP module pages)
+  await OPLocalizationService.init();
+  // Initialize Hive for offline feedback storage
+  await OfflineFeedbackService.init();
   runApp(const MyApp());
 }
 

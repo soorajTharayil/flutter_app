@@ -158,62 +158,71 @@ class DeviceApprovalController extends CI_Controller
                 }
             }
 
-            // Parse User-Agent to enhance device_name and platform for web
-            $user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
-            $device_name = trim($input['device_name']);
+            // Get device_name and platform from request
+            $device_name = $input['device_name'];
             $platform = trim($input['platform']);
 
-            // If device_name or platform is generic "Web Browser", enhance with User-Agent info
-            if (($device_name === 'Web Browser' || $platform === 'Web Browser') && !empty($user_agent)) {
-                $ua_lower = strtolower($user_agent);
+            // Only enhance device_name for web browsers, preserve exact value for mobile devices
+            $is_web_browser = ($device_name === 'Web Browser' || $platform === 'Web Browser');
 
-                // Detect device type
-                if (strpos($ua_lower, 'mac') !== false) {
-                    $device_name = 'Mac Laptop';
-                    $platform = 'macOS';
-                } else if (strpos($ua_lower, 'windows') !== false) {
-                    $device_name = 'Windows PC';
-                    $platform = 'Windows';
-                } else if (strpos($ua_lower, 'linux') !== false) {
-                    $device_name = 'Linux PC';
-                    $platform = 'Linux';
-                } else if (strpos($ua_lower, 'iphone') !== false) {
-                    $device_name = 'iPhone';
-                    $platform = 'iOS';
-                } else if (strpos($ua_lower, 'ipad') !== false) {
-                    $device_name = 'iPad';
-                    $platform = 'iOS';
-                } else if (strpos($ua_lower, 'android') !== false) {
-                    $device_name = 'Android Device';
-                    $platform = 'Android';
-                }
+            if ($is_web_browser) {
+                // Parse User-Agent to enhance device_name and platform for web only
+                $user_agent = isset($_SERVER['HTTP_USER_AGENT']) ? $_SERVER['HTTP_USER_AGENT'] : '';
 
-                // Detect browser
-                $browser = '';
-                if (strpos($ua_lower, 'chrome') !== false && strpos($ua_lower, 'edg') === false) {
-                    $browser = 'Chrome';
-                } else if (strpos($ua_lower, 'safari') !== false && strpos($ua_lower, 'chrome') === false) {
-                    $browser = 'Safari';
-                } else if (strpos($ua_lower, 'firefox') !== false) {
-                    $browser = 'Firefox';
-                } else if (strpos($ua_lower, 'edg') !== false) {
-                    $browser = 'Edge';
-                } else if (strpos($ua_lower, 'opera') !== false) {
-                    $browser = 'Opera';
-                }
+                if (!empty($user_agent)) {
+                    $ua_lower = strtolower($user_agent);
 
-                if (!empty($browser)) {
-                    $platform = $platform . ' ' . $browser;
+                    // Detect device type
+                    if (strpos($ua_lower, 'mac') !== false) {
+                        $device_name = 'Mac Laptop';
+                        $platform = 'macOS';
+                    } else if (strpos($ua_lower, 'windows') !== false) {
+                        $device_name = 'Windows PC';
+                        $platform = 'Windows';
+                    } else if (strpos($ua_lower, 'linux') !== false) {
+                        $device_name = 'Linux PC';
+                        $platform = 'Linux';
+                    } else if (strpos($ua_lower, 'iphone') !== false) {
+                        $device_name = 'iPhone';
+                        $platform = 'iOS';
+                    } else if (strpos($ua_lower, 'ipad') !== false) {
+                        $device_name = 'iPad';
+                        $platform = 'iOS';
+                    } else if (strpos($ua_lower, 'android') !== false) {
+                        $device_name = 'Android Device';
+                        $platform = 'Android';
+                    }
+
+                    // Detect browser
+                    $browser = '';
+                    if (strpos($ua_lower, 'chrome') !== false && strpos($ua_lower, 'edg') === false) {
+                        $browser = 'Chrome';
+                    } else if (strpos($ua_lower, 'safari') !== false && strpos($ua_lower, 'chrome') === false) {
+                        $browser = 'Safari';
+                    } else if (strpos($ua_lower, 'firefox') !== false) {
+                        $browser = 'Firefox';
+                    } else if (strpos($ua_lower, 'edg') !== false) {
+                        $browser = 'Edge';
+                    } else if (strpos($ua_lower, 'opera') !== false) {
+                        $browser = 'Opera';
+                    }
+
+                    if (!empty($browser)) {
+                        $platform = $platform . ' ' . $browser;
+                    }
                 }
             }
+            // For mobile devices (Android/iOS), device_name is preserved exactly as sent from Flutter
+            // No trimming or modification is applied
 
-            // Prepare request data (use enhanced device_name and platform if available)
+            // Prepare request data
+            // device_name: exact value from Flutter for mobile, enhanced for web
             $request_data = array(
                 'user_id' => intval($input['user_id']),
                 'name' => trim($input['name']),
                 'email' => trim($input['email']),
-                'device_name' => $device_name, // Use enhanced device name
-                'platform' => $platform, // Use enhanced platform
+                'device_name' => $device_name, // Exact value from Flutter (mobile) or enhanced (web)
+                'platform' => $platform,
                 'device_id' => $device_id,
                 'ip_address' => $ip_address,
                 'domain' => $domain

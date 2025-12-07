@@ -1,11 +1,12 @@
-// lib/models/feedback_data.dart
+// lib/models/ip_feedback_data.dart
 import '../model/op_question_model.dart';
 
-class FeedbackData {
+class IPFeedbackData {
   String name;
   String uhid;
-  String department;
   String mobileNumber;
+  String ward;
+  String roomBed;
 
   Map<String, int> feedbackValues;
   Map<String, Map<String, bool>> selectedReasons;
@@ -14,11 +15,12 @@ class FeedbackData {
 
   bool isTermsAccepted;
 
-  FeedbackData({
+  IPFeedbackData({
     this.name = '',
     this.uhid = '',
-    this.department = '',
     this.mobileNumber = '',
+    this.ward = '',
+    this.roomBed = '',
     this.feedbackValues = const {},
     this.selectedReasons = const {},
     this.comments = const {},
@@ -26,3 +28,4 @@ class FeedbackData {
     this.isTermsAccepted = false,
   });
 }
+

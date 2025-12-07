@@ -4,7 +4,14 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:devkitflutter/ui/op_feedback_page.dart'; // Adjust if needed
 import 'package:devkitflutter/ui/webview_page.dart';
 import 'package:devkitflutter/ui/signin.dart';
+import 'package:devkitflutter/ui/ip_discharge_mobile_page.dart';
 import 'package:devkitflutter/config/constant.dart';
+import 'package:devkitflutter/widgets/app_header_wrapper.dart';
+import 'package:devkitflutter/widgets/hospital_logo_widget.dart';
+import 'package:devkitflutter/services/department_service.dart' as dept_service;
+import 'package:devkitflutter/services/offline_storage_service.dart';
+import 'package:devkitflutter/services/feedback_preloader.dart';
+import 'package:devkitflutter/pages/offline_sync_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,6 +27,61 @@ class _HomePageState extends State<HomePage> {
   String _query = '';
   Map<String, dynamic> _permissions = {};
   bool _isLoadingPermissions = true;
+  int _offlineFeedbackCount = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPermissions();
+    _loadOfflineFeedbackCount();
+    // Preload all feedback data (IP + OP) on first dashboard load
+    _preloadFeedbackDataOnFirstLoad();
+    // Dashboard always uses English - no language listener needed
+  }
+
+  /// Preload all feedback data (IP + OP) on first dashboard load after login
+  /// Runs silently in background - does not block UI
+  Future<void> _preloadFeedbackDataOnFirstLoad() async {
+    try {
+      // Check if preload has already been completed
+      final isPreloadCompleted = await FeedbackPreloader.isPreloadCompleted();
+      
+      if (!isPreloadCompleted) {
+        // Preload all feedback data in background
+        // This ensures both IP and OP modules work fully offline
+        FeedbackPreloader.preloadAllFeedbackData();
+      }
+    } catch (e) {
+      // Silently fail - app should continue working
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Refresh offline count when returning to dashboard
+    _refreshOfflineCount();
+  }
+
+  /// Load offline feedback count (combined OP + IP)
+  Future<void> _loadOfflineFeedbackCount() async {
+    try {
+      final opFeedbacks = await OfflineStorageService.loadOfflineOPFeedback();
+      final ipFeedbacks = await OfflineStorageService.loadOfflineIPFeedback();
+      if (mounted) {
+        setState(() {
+          _offlineFeedbackCount = opFeedbacks.length + ipFeedbacks.length;
+        });
+      }
+    } catch (e) {
+      // Ignore errors
+    }
+  }
+
+  /// Refresh offline count when returning to dashboard
+  void _refreshOfflineCount() {
+    _loadOfflineFeedbackCount();
+  }
 
   // All available modules with their permission keys
   final List<Map<String, dynamic>> _allModules = [
@@ -28,7 +90,7 @@ class _HomePageState extends State<HomePage> {
       'icon': Icons.exit_to_app,
       'color': Colors.blue,
       'desc': 'Submit feedback for in-patient discharge experience',
-      'urlPath': '/ipfb', // Web URL path
+      'page': const IPDischargeMobilePage(), // Use Flutter page instead of WebView
       'permissionKey': 'IP-MODULE',
     },
     {
@@ -105,11 +167,6 @@ class _HomePageState extends State<HomePage> {
     },
   ];
 
-  @override
-  void initState() {
-    super.initState();
-    _loadPermissions();
-  }
 
   Future<void> _loadPermissions() async {
     try {
@@ -226,7 +283,7 @@ class _HomePageState extends State<HomePage> {
     if (module.containsKey('urlPath')) {
       try {
         // Get the domain from SharedPreferences
-        final domain = await getDomainFromPrefs();
+        final domain = await dept_service.getDomainFromPrefs();
         if (domain.isEmpty) {
           Fluttertoast.showToast(msg: "Domain not found. Please login again.");
           return;
@@ -251,7 +308,9 @@ class _HomePageState extends State<HomePage> {
         Fluttertoast.showToast(msg: "Error opening link: ${e.toString()}");
       }
     } else if (module.containsKey('page')) {
-      // Internal navigation for Outpatient Feedback
+      // Navigate directly to module page
+      // Data should already be preloaded when dashboard first loads
+      // No need to preload again here - just navigate
       Navigator.push(
           context, MaterialPageRoute(builder: (_) => module['page']));
     }
@@ -259,70 +318,123 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: Stack(
+    return AppHeaderWrapper(
+      title: 'Dashboard', // Always English on Dashboard
+      showBackButton: false,
+      showLogo: false,
+      showLanguageSelector: false,
+      actions: [
+        // Notification bell icon with badge
+        Stack(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.notifications),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OfflineFeedbackSyncPage(),
+                  ),
+                ).then((_) {
+                  // Refresh count when returning
+                  _loadOfflineFeedbackCount();
+                });
+              },
+            ),
+            if (_offlineFeedbackCount > 0)
+              Positioned(
+                right: 11,
+                top: 11,
+                child: Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: Colors.red,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  constraints: const BoxConstraints(
+                    minWidth: 14,
+                    minHeight: 14,
+                  ),
+                  child: Text(
+                    '$_offlineFeedbackCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _selectedIndex,
+        onTap: _onItemTapped,
+        selectedItemColor: Theme.of(context).primaryColor,
+        unselectedItemColor: Colors.grey,
+        items: const [
+          BottomNavigationBarItem(
+              icon: Icon(Icons.home), label: 'Home'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.menu), label: 'Menu'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.settings), label: 'Settings'),
+        ],
+      ),
+      child: Stack(
         children: [
           CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 150,
-            backgroundColor: efeedorBrandGreen,
-            title: const Text("Dashboard"),
-            flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      efeedorBrandGreen.withOpacity(0.95),
-                      efeedorBrandGreen
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Hospital Logo - Rectangular container
+                      const HospitalLogoWidget(
+                        height: 80,
+                        padding: EdgeInsets.all(16),
+                        showRectangular: true,
+                        showCircular: false,
+                      ),
+                      const SizedBox(height: 16),
+                      // Search bar
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(28),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withOpacity(0.08),
+                              blurRadius: 14,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (v) => setState(() => _query = v),
+                          decoration: InputDecoration(
+                            hintText: 'Search', // Always English on Dashboard
+                            hintStyle:
+                                TextStyle(color: Colors.black.withOpacity(0.4)),
+                            border: InputBorder.none,
+                            prefixIcon:
+                                const Icon(Icons.search, color: Colors.black45),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 14),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ),
-            ),
-          ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Search bar
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 14,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: (v) => setState(() => _query = v),
-                      decoration: InputDecoration(
-                        hintText: 'Search',
-                        hintStyle:
-                            TextStyle(color: Colors.black.withOpacity(0.4)),
-                        border: InputBorder.none,
-                        prefixIcon:
-                            const Icon(Icons.search, color: Colors.black45),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
           if (_isLoadingPermissions)
             SliverToBoxAdapter(
               child: Padding(
@@ -349,20 +461,20 @@ class _HomePageState extends State<HomePage> {
                         color: Colors.grey[400],
                       ),
                       const SizedBox(height: 16),
-                      Text(
+                      const Text(
                         'No modules available',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey[700],
+                          color: Colors.grey,
                         ),
                       ),
                       const SizedBox(height: 8),
-                      Text(
+                      const Text(
                         'You don\'t have access to any modules',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey[500],
+                          color: Colors.grey,
                         ),
                       ),
                     ],
@@ -438,10 +550,10 @@ class _HomePageState extends State<HomePage> {
                 childCount: _filteredModules.length,
               ),
             ),
-          const SliverToBoxAdapter(child: SizedBox(height: 16)),
-        ],
-      ),
-          // Logout icon in bottom-right corner (CHANGE 2)
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            ],
+          ),
+          // Logout icon in bottom-right corner
           Positioned(
             bottom: 20,
             right: 20,
@@ -460,24 +572,11 @@ class _HomePageState extends State<HomePage> {
               child: IconButton(
                 icon: const Icon(Icons.logout, size: 28, color: Colors.white),
                 onPressed: _logout,
-                tooltip: 'Logout',
+                tooltip: 'Logout', // Always English on Dashboard
                 padding: const EdgeInsets.all(12),
               ),
             ),
           ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: Theme.of(context).primaryColor,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );

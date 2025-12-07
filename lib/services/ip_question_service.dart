@@ -2,18 +2,16 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../model/op_question_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'department_service.dart'; // For getDomainFromPrefs
 
-Future<String> getDomainFromPrefs() async {
-  final prefs = await SharedPreferences.getInstance();
-  return prefs.getString('domain') ?? ''; // default to empty string if not set
-}
-
-Future<List<QuestionSet>> fetchQuestionSets(String patientId, String department) async {
+/// Fetch question sets from ward.php API for IP Discharge Feedback
+/// Uses ward.php instead of department.php
+Future<List<QuestionSet>> fetchIPQuestionSets(String mobileNumber) async {
   final domain = await getDomainFromPrefs();
   final prefs = await SharedPreferences.getInstance();
-  final cacheKey = 'questionSets_${domain}_$department';
+  final cacheKey = 'ip_questionSets_${domain}_$mobileNumber';
 
-  // Check cache first (cache for 10 minutes since questions change less frequently)
+  // Check cache first (cache for 10 minutes)
   final cached = prefs.getString(cacheKey);
   if (cached != null) {
     try {
@@ -35,7 +33,6 @@ Future<List<QuestionSet>> fetchQuestionSets(String patientId, String department)
         }
         
         if (!hasTranslations) {
-          // Clear cache and continue to fetch fresh data
           await prefs.remove(cacheKey);
         } else {
           return questionSets.map((json) => QuestionSet.fromJson(json)).toList();
@@ -48,7 +45,7 @@ Future<List<QuestionSet>> fetchQuestionSets(String patientId, String department)
 
   try {
     final response = await http.get(
-      Uri.parse('https://$domain.efeedor.com/api/department.php?patientid=$patientId'),
+      Uri.parse('https://$domain.efeedor.com/api/ward.php?mobile=$mobileNumber'),
     ).timeout(
       const Duration(seconds: 15),
       onTimeout: () {
@@ -70,19 +67,23 @@ Future<List<QuestionSet>> fetchQuestionSets(String patientId, String department)
       
       return result;
     } else {
-      throw Exception('Failed to load questions');
+      throw Exception('Failed to load questions from ward.php');
     }
   } catch (e) {
-    // If fetch fails, try to return cached data even if expired
+    // If fetch fails, try to return cached data even if expired (for offline support)
     if (cached != null) {
       try {
         final cachedData = jsonDecode(cached);
-        final questionSets = cachedData['data']['question_set'] as List<dynamic>;
-        return questionSets.map((json) => QuestionSet.fromJson(json)).toList();
+        final questionSets = cachedData['data']['question_set'] as List<dynamic>?;
+        if (questionSets != null && questionSets.isNotEmpty) {
+          // Return cached data even if expired - better than nothing when offline
+          return questionSets.map((json) => QuestionSet.fromJson(json)).toList();
+        }
       } catch (e) {
-        // If cache also fails, throw original error
+        // If cache parsing fails, continue to throw original error
       }
     }
     rethrow;
   }
 }
+

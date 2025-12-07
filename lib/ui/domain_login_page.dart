@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:devkitflutter/ui/signin.dart';
 import 'package:devkitflutter/config/constant.dart';
 import 'package:devkitflutter/services/device_service.dart';
@@ -94,17 +95,15 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Image.asset(
+                       Image.asset(
                         'assets/images/efeedor_square_logo.png',
-                        width: 48,
                         height: 48,
-                        fit: BoxFit.contain,
                         color: Colors.white,
                         colorBlendMode: BlendMode.srcIn,
                       ),
                       const SizedBox(height: 10),
                       const Text(
-                        'Efeedor',
+                        '',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 28,
@@ -148,6 +147,10 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
                               color: Colors.black87,
                               fontSize: 16,
                             ),
+                            inputFormatters: [
+                              // Prevent spaces from being entered
+                              FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                            ],
                             decoration: InputDecoration(
                               hintText: 'eg : kademo',
                               hintStyle: TextStyle(
@@ -293,16 +296,42 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
   }
 
   Future<void> _validateAndProceed() async {
-    final String input = domainController.text.trim().toLowerCase();
-    if (input.isEmpty) {
-      _showAlert('Please enter your domain.');
-      return;
+    // Set loading state immediately when button is tapped
+    if (mounted) {
+      setState(() {
+        _loading = true;
+      });
     }
-
-    setState(() {
-      _loading = true;
-    });
+    
     try {
+      // Trim leading and trailing spaces
+      final String trimmedInput = domainController.text.trim();
+      
+      // Check if input is empty after trimming
+      if (trimmedInput.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+          });
+        }
+        _showAlert('Please enter your domain.');
+        return;
+      }
+      
+      // Check for any spaces (leading, trailing, or middle)
+      if (trimmedInput.contains(' ')) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+          });
+        }
+        _showAlert('Domain cannot contain spaces. Please enter a valid domain name.');
+        return;
+      }
+      
+      // Convert to lowercase for validation
+      final String input = trimmedInput.toLowerCase();
+      
       final response = await http.get(Uri.parse(domainValidationApi));
       if (response.statusCode != 200) {
         _showAlert('Unable to validate domain. Please try again.');

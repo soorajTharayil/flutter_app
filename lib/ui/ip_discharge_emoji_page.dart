@@ -1,39 +1,39 @@
 import 'package:flutter/material.dart';
 import '../model/op_question_model.dart';
-import '../model/op_feedback_data_model.dart';
-import 'op_finalpage.dart';
+import '../model/ip_feedback_data_model.dart';
 import '../config/constant.dart';
 import '../widgets/app_header_wrapper.dart';
 import '../services/op_localization_service.dart';
-import '../services/op_data_loader.dart';
+import '../services/ip_data_loader.dart';
 import '../services/op_app_localizations.dart';
+import 'ip_discharge_nps_page.dart';
 
-class FeedbackScreen extends StatefulWidget {
-  final List<QuestionSet> questionSets;
-  final FeedbackData feedbackData;
+class IPDischargeEmojiPage extends StatefulWidget {
+  final IPFeedbackData feedbackData;
   final String language;
 
-  FeedbackScreen({
-    required this.questionSets,
+  IPDischargeEmojiPage({
+    Key? key,
     required this.feedbackData,
     this.language = 'lang1',
-  });
+  }) : super(key: key);
 
   @override
-  _FeedbackScreenState createState() => _FeedbackScreenState();
+  _IPDischargeEmojiPageState createState() => _IPDischargeEmojiPageState();
 }
 
-class _FeedbackScreenState extends State<FeedbackScreen> {
+class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
   Map<String, int> feedbackValues = {};
   Map<String, Map<String, bool>> selectedReasons = {};
   Map<String, String> comments = {};
-  late List<QuestionSet> _questionSets;
+  List<QuestionSet> _questionSets = [];
   bool _isReloading = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _questionSets = widget.questionSets;
+    _loadQuestionSets();
     // Listen to language changes
     OPLocalizationService.instance.addListener(_onLanguageChanged);
   }
@@ -44,6 +44,39 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     super.dispose();
   }
 
+  Future<void> _loadQuestionSets() async {
+    try {
+      // ONLY use cached data - never make API calls from this page
+      // This ensures full offline support
+      List<QuestionSet> cachedQuestionSets = await IPDataLoader.getCachedQuestionSets(widget.feedbackData.mobileNumber);
+      
+      if (mounted) {
+        setState(() {
+          _questionSets = cachedQuestionSets;
+          _isLoading = false;
+        });
+
+        // If no cached data available, show helpful message
+        if (cachedQuestionSets.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(context.opTranslate('failed_to_load')),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // Ensure loading state is cleared
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
   void _onLanguageChanged() async {
     if (mounted && !_isReloading) {
       setState(() {
@@ -52,20 +85,13 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
       try {
         // Reload from cache only (no API calls for offline support)
-        // Cached question sets already contain all multilingual fields
-        // (categoryk, categorym, questionk, questionm, titlek, titlem)
-        final cachedQuestionSets = await OPDataLoader.getCachedQuestionSets(
-          widget.feedbackData.department,
+        final cachedQuestionSets = await IPDataLoader.getCachedQuestionSets(
+          widget.feedbackData.mobileNumber,
         );
 
         if (mounted) {
           setState(() {
-            // Update question sets from cache (multilingual fields already included)
-            if (cachedQuestionSets.isNotEmpty) {
-              _questionSets = cachedQuestionSets;
-            }
-            // If cache is empty, keep existing question sets
-            // The apiText() function will still work with existing data
+            _questionSets = cachedQuestionSets;
             _isReloading = false;
           });
         }
@@ -81,7 +107,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
 
   /// Language helper function: returns the correct API text based on selected language
   /// Matches backend API structure: category/categoryk/categorym, question/questionk/questionm, title/titlek/titlem
-  /// Uses fields from department.php → op_questionjson() output
+  /// Uses fields from ward.php output
   String apiText(String en, String kn, String ml, String lang) {
     if (lang == 'kn' && kn.isNotEmpty) {
       return kn;
@@ -283,14 +309,24 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
       child: Column(
         children: [
           Expanded(
-            child: _isReloading
+            child: _isReloading || _isLoading
                 ? const Center(
                     child: Padding(
                       padding: EdgeInsets.all(20.0),
                       child: CircularProgressIndicator(),
                     ),
                   )
-                : ListView.builder(
+                : _questionSets.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(20.0),
+                          child: Text(
+                            context.opTranslate('failed_to_load'),
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      )
+                    : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
                     itemCount: _questionSets.length + 1, // +1 for welcome message
                     itemBuilder: (context, i) {
@@ -724,7 +760,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => YourNextScreenFinal(
+                          builder: (context) => IPDischargeNpsPage(
                             feedbackData: widget.feedbackData,
                           ),
                         ),
@@ -757,3 +793,4 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     );
   }
 }
+

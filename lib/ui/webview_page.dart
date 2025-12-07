@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:devkitflutter/config/constant.dart';
+import 'package:devkitflutter/widgets/app_header_wrapper.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:webview_flutter/webview_flutter.dart';
 
@@ -78,37 +79,29 @@ class _WebViewPageState extends State<WebViewPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: efeedorBrandGreen,
-        title: Text(
-          widget.title,
-          style: const TextStyle(color: Colors.white),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          if (!kIsWeb && _controller != null)
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: () {
-                _controller?.reload();
-              },
-            ),
-          if (kIsWeb)
-            IconButton(
-              icon: const Icon(Icons.refresh, color: Colors.white),
-              onPressed: () {
-                setState(() {
-                  // Reload by rebuilding
-                });
-              },
-            ),
-        ],
-      ),
-      body: kIsWeb
+    return AppHeaderWrapper(
+      title: widget.title,
+      showLogo: false,
+      showLanguageSelector: false,
+      actions: [
+        if (!kIsWeb && _controller != null)
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () {
+              _controller?.reload();
+            },
+          ),
+        if (kIsWeb)
+          IconButton(
+            icon: const Icon(Icons.refresh, color: Colors.white),
+            onPressed: () {
+              setState(() {
+                // Reload by rebuilding
+              });
+            },
+          ),
+      ],
+      child: kIsWeb
           ? (_webViewType != null
               ? webview_helper.buildWebView(_webViewType!)
               : const Center(child: CircularProgressIndicator()))

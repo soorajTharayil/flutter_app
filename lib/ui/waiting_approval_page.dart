@@ -282,8 +282,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
                 // Logo
                 Image.asset(
                   'assets/images/efeedor_square_logo.png',
-                  width: 80,
-                  height: 80,
+                  height: 48,
                   color: efeedorBrandGreen,
                   colorBlendMode: BlendMode.srcIn,
                 ),

@@ -3,36 +3,36 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
-import '../model/op_feedback_data_model.dart';
+import '../model/ip_feedback_data_model.dart';
 import 'op_thankyoupage.dart';
 import '../config/constant.dart';
 import '../widgets/app_header_wrapper.dart';
-import '../services/offline_storage_service.dart';
-import '../services/connectivity_helper.dart';
-import '../services/cordova_payload_builder.dart';
 import '../services/op_localization_service.dart';
 import '../services/op_app_localizations.dart';
+import '../services/offline_storage_service.dart';
+import '../services/connectivity_helper.dart';
 
 Future<String> getDomainFromPrefs() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('domain') ?? '';
 }
 
-class YourNextScreenFinal extends StatefulWidget {
-  final FeedbackData feedbackData;
+class IPDischargeNpsPage extends StatefulWidget {
+  final IPFeedbackData feedbackData;
 
-  const YourNextScreenFinal({Key? key, required this.feedbackData})
+  const IPDischargeNpsPage({Key? key, required this.feedbackData})
       : super(key: key);
 
   @override
-  _YourNextScreenFinalState createState() => _YourNextScreenFinalState();
+  _IPDischargeNpsPageState createState() => _IPDischargeNpsPageState();
 }
 
-class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
+class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
   int? rating; // No default selection
   List<bool> selectedReasons = List.generate(8, (_) => false);
   TextEditingController suggestionController = TextEditingController();
   TextEditingController detractorCommentController = TextEditingController();
+  TextEditingController staffNameController = TextEditingController();
   bool isSubmitting = false; // Prevent double submission
 
   List<String> get generalReasons => [
@@ -58,6 +58,7 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
     OPLocalizationService.instance.removeListener(_onLanguageChanged);
     suggestionController.dispose();
     detractorCommentController.dispose();
+    staffNameController.dispose();
     super.dispose();
   }
 
@@ -75,13 +76,15 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
     return const Color(0xFF81C784); // Green
   }
 
-  /// Builds the correct JSON payload structure for OP feedback API
+  /// Builds the correct JSON payload structure for IP feedback API
+  /// Uses the SAME structure as OP but with IP-specific fields
   Map<String, dynamic> buildFeedbackPayload(
-      FeedbackData feedbackData,
+      IPFeedbackData feedbackData,
       int npsRating,
       String suggestions,
       Map<String, bool> generalReasonsMap,
-      String detractorComment) {
+      String detractorComment,
+      String staffName) {
     // Initialize structures
     Map<String, dynamic> reasonSet = {};
     Map<String, dynamic> reason = {};
@@ -252,9 +255,9 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
       overallScore = double.parse(overallScore.toStringAsFixed(2));
     }
 
-    // Build final payload
+    // Build final payload - SAME structure as OP but with IP section and IP fields
     final payload = <String, dynamic>{
-      'section': 'OP',
+      'section': 'IP',
       'langsub': 'english',
       'datetime': DateTime.now().millisecondsSinceEpoch,
       'reasonSet': reasonSet,
@@ -269,9 +272,10 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
       'source': 'WLink',
       'name': feedbackData.name,
       'patientid': feedbackData.uhid,
-      'ward': feedbackData.department,
+      'ward': feedbackData.ward,
+      'roomBed': feedbackData.roomBed,
       'contactnumber': feedbackData.mobileNumber,
-      'patientType': 'Out-Patient',
+      'patientType': 'In-Patient',
       'consultant_cat': 'General',
       'administratorId': 'admin001',
       'wardid': 'ward001',
@@ -279,6 +283,7 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
       ...generalReasonsMap,
       'suggestions': suggestions,
       'detractorcomment': detractorComment,
+      'staffname': staffName,
     };
 
     return payload;
@@ -637,7 +642,74 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
                         ),
                       ),
                     ),
-                    // SECTION 3: COMMENT
+                    // SECTION 3: STAFF RECOGNITION
+                    Card(
+                      elevation: 4,
+                      shadowColor: Colors.black.withOpacity(0.08),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20)),
+                      margin: const EdgeInsets.only(bottom: 20),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              context.opTranslate('staff_recognition'),
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w800,
+                                color: efeedorBrandGreen,
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              context.opTranslate('staff_recognition_description'),
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: Colors.black87,
+                                height: 1.4,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: staffNameController,
+                              decoration: InputDecoration(
+                                hintText: context.opTranslate('staff_name'),
+                                hintStyle: TextStyle(
+                                  color: Colors.black.withOpacity(0.35),
+                                ),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide(
+                                    color: efeedorBrandGreen,
+                                    width: 1.8,
+                                  ),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(
+                                    horizontal: 16, vertical: 14),
+                              ),
+                              maxLines: 1,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // SECTION 4: COMMENT
                     Card(
                       elevation: 4,
                       shadowColor: Colors.black.withOpacity(0.08),
@@ -820,6 +892,7 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
                         suggestionController.text,
                         generalReasonsMap,
                         detractorComment,
+                        staffNameController.text.trim(),
                       );
 
                       // Get domain from SharedPreferences
@@ -839,22 +912,12 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
                       // Check if online
                       final online = await isOnline();
 
-                      // If offline, save to local storage using flat Cordova structure
+                      // If offline, save to local storage
                       if (!online) {
                         try {
-                          // Build flat payload matching Cordova (for sync)
-                          final flatPayload =
-                              CordovaPayloadBuilder.buildFlatPayload(
-                            feedbackData,
-                            rating!,
-                            suggestionController.text,
-                            generalReasonsMap,
-                            detractorComment,
-                          );
-
-                          // Save feedback offline with flat structure
-                          await OfflineStorageService.saveOfflineFeedback(
-                              flatPayload);
+                          // Save IP feedback offline
+                          await OfflineStorageService.saveOfflineIPFeedback(
+                              feedbackPayload);
 
                           // Show success message and navigate to thank you page
                           if (mounted) {
@@ -901,7 +964,7 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
 
                       // If online, proceed with normal API call
                       final uri = Uri.parse(
-                        'https://$domain.efeedor.com/api/saveoutpatientfeedback.php?patient_id=${feedbackData.uhid}&administratorId=admin001',
+                        'https://$domain.efeedor.com/api/savepatientfeedback.php?patient_id=${feedbackData.uhid}&administratorId=admin001',
                       );
 
                       try {
@@ -947,18 +1010,8 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
                       } catch (e) {
                         // If online but API call fails, treat as offline and save locally
                         try {
-                          // Build flat payload matching Cordova (for sync)
-                          final flatPayload =
-                              CordovaPayloadBuilder.buildFlatPayload(
-                            feedbackData,
-                            rating!,
-                            suggestionController.text,
-                            generalReasonsMap,
-                            detractorComment,
-                          );
-
-                          await OfflineStorageService.saveOfflineFeedback(
-                              flatPayload);
+                          await OfflineStorageService.saveOfflineIPFeedback(
+                              feedbackPayload);
                           if (mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
@@ -1034,3 +1087,4 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
     );
   }
 }
+

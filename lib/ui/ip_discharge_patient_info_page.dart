@@ -1,74 +1,69 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/department_service.dart';
-import '../model/department_model.dart';
-import 'op_emoji.dart';
-import '../model/op_feedback_data_model.dart';
 import '../config/constant.dart';
 import '../widgets/app_header_wrapper.dart';
 import '../services/op_app_localizations.dart';
 import '../services/op_localization_service.dart';
-import '../services/op_data_loader.dart';
+import '../services/ward_service.dart';
+import '../services/ip_data_loader.dart';
+import '../model/ward_model.dart';
+import '../model/ip_feedback_data_model.dart';
+import 'ip_discharge_emoji_page.dart';
 
-class OpFeedbackPage extends StatefulWidget {
-  const OpFeedbackPage({Key? key}) : super(key: key);
-
-  @override
-  State<OpFeedbackPage> createState() => _OpFeedbackPageState();
+/// Language helper function: returns the correct API text based on selected language
+String apiText(String en, String kn, String ml, String lang) {
+  if (lang == 'kn' && kn.isNotEmpty) {
+    return kn;
+  }
+  if (lang == 'ml' && ml.isNotEmpty) {
+    return ml;
+  }
+  return en;
 }
 
-class _OpFeedbackPageState extends State<OpFeedbackPage> {
+class IPDischargePatientInfoPage extends StatefulWidget {
+  final String mobileNumber;
+
+  const IPDischargePatientInfoPage({
+    Key? key,
+    required this.mobileNumber,
+  }) : super(key: key);
+
+  @override
+  State<IPDischargePatientInfoPage> createState() =>
+      _IPDischargePatientInfoPageState();
+}
+
+class _IPDischargePatientInfoPageState
+    extends State<IPDischargePatientInfoPage> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController nameController = TextEditingController();
-  final TextEditingController uhidController = TextEditingController();
-  final TextEditingController mobileController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _uhidController = TextEditingController();
   final _nameFieldKey = GlobalKey<FormFieldState<String>>();
   final _uhidFieldKey = GlobalKey<FormFieldState<String>>();
-  final _mobileFieldKey = GlobalKey<FormFieldState<String>>();
-  final _departmentFieldKey = GlobalKey<FormFieldState<String>>();
+  final _wardFieldKey = GlobalKey<FormFieldState<String>>();
+  final _roomBedFieldKey = GlobalKey<FormFieldState<String>>();
 
-  String? selectedDepartment;
-  List<Department> departments = [];
-  bool isLoadingDepartments = true;
+  String? selectedWard;
+  String? selectedRoomBed;
+  List<Ward> wards = [];
+  List<String> bedNumbers = [];
+  bool isLoadingWards = true;
   bool _hasValidatedOnce = false;
 
   @override
   void initState() {
     super.initState();
-    _loadCachedDepartments();
-    // Listen to OP language changes only
+    _loadWards();
+    // Listen to language changes
     OPLocalizationService.instance.addListener(_onLanguageChanged);
-  }
-
-  /// Load departments from cache, fallback to API if cache is empty (first launch)
-  Future<void> _loadCachedDepartments() async {
-    try {
-      final cachedDepartments = await OPDataLoader.getCachedDepartments();
-
-      // If cache is empty (first launch), load from API
-      if (cachedDepartments.isEmpty) {
-        // Fallback to API call for first launch
-        await loadDepartments();
-      } else {
-        // Use cached data
-        if (mounted) {
-          setState(() {
-            departments = cachedDepartments;
-            isLoadingDepartments = false;
-          });
-        }
-      }
-    } catch (e) {
-      // If cache load fails, try API as fallback
-      if (mounted) {
-        await loadDepartments();
-      }
-    }
   }
 
   @override
   void dispose() {
     OPLocalizationService.instance.removeListener(_onLanguageChanged);
+    _nameController.dispose();
+    _uhidController.dispose();
     super.dispose();
   }
 
@@ -78,39 +73,83 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
     }
   }
 
-  Future<void> loadDepartments() async {
+  Future<void> _loadWards() async {
     try {
-      final fetchedDepartments = await fetchDepartments('123');
+      // ONLY use cached data - never make API calls from this page
+      // This ensures full offline support
+      List<Ward> cachedWards =
+          await IPDataLoader.getCachedWards(widget.mobileNumber);
+
       if (mounted) {
         setState(() {
-          departments = fetchedDepartments;
-          isLoadingDepartments = false;
+          wards = cachedWards;
+          isLoadingWards = false;
         });
+
+        // If no cached data available, show helpful message
+        if (cachedWards.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                context.opTranslate('failed_to_load'),
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
       }
     } catch (e) {
+      // Ensure loading state is cleared
       if (mounted) {
         setState(() {
-          isLoadingDepartments = false;
+          isLoadingWards = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              e.toString().contains('timeout')
-                  ? context.opTranslate('connection_timeout')
-                  : context.opTranslate('failed_to_load'),
-            ),
-            backgroundColor: Colors.orange,
-            duration: const Duration(seconds: 4),
-          ),
-        );
       }
+    }
+  }
+
+  void _loadBedNumbers(String? wardTitle) {
+    if (wardTitle == null || wardTitle.isEmpty) {
+      setState(() {
+        bedNumbers = [];
+        selectedRoomBed = null;
+      });
+      return;
+    }
+
+    final bedList = getBedNumbersForWard(wards, wardTitle);
+    setState(() {
+      bedNumbers = bedList;
+      selectedRoomBed = null; // Reset selection when ward changes
+    });
+  }
+
+  void _navigateToEmojiPage() async {
+    if (_formKey.currentState!.validate()) {
+      final feedbackData = IPFeedbackData(
+        name: _nameController.text,
+        uhid: _uhidController.text,
+        mobileNumber: widget.mobileNumber,
+        ward: selectedWard!,
+        roomBed: selectedRoomBed!,
+      );
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => IPDischargeEmojiPage(
+            feedbackData: feedbackData,
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AppHeaderWrapper(
-      title: context.opTranslate('patient_details'),
+      title: context.opTranslate('patient_information'),
       showLogo: false,
       showLanguageSelector: true,
       child: SafeArea(
@@ -134,50 +173,37 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                         children: [
                           buildTextField(
                             label: '${context.opTranslate('patient_name')} *',
-                            controller: nameController,
-                            hint: context.opTranslate('enter_patient_name'),
+                            controller: _nameController,
+                            hint: context.opTranslate('enter_ip_patient_name'),
                             icon: Icons.person,
-                            maxLength: 25,
+                            maxLength: 50,
                             fieldKey: _nameFieldKey,
-                            validator: (val) => val == null || val.isEmpty
-                                ? context.opTranslate('patient_name_required')
-                                : null,
+                            validator: (val) {
+                              if (val == null || val.isEmpty) {
+                                return context
+                                    .opTranslate('patient_name_required');
+                              }
+                              if (val.length < 2) {
+                                return context
+                                    .opTranslate('patient_name_min_length');
+                              }
+                              return null;
+                            },
                           ),
                           buildTextField(
-                            label: '${context.opTranslate('uhid')} *',
-                            controller: uhidController,
-                            hint: context.opTranslate('enter_uhid'),
+                            label: '${context.opTranslate('patient_uhid')} *',
+                            controller: _uhidController,
+                            hint: context.opTranslate('enter_ip_uhid'),
                             icon: Icons.badge,
                             maxLength: 20,
-                            keyboardType: TextInputType.number,
+                            keyboardType: TextInputType.text,
                             fieldKey: _uhidFieldKey,
                             validator: (val) => val == null || val.isEmpty
                                 ? context.opTranslate('uhid_required')
                                 : null,
                           ),
-                          buildDropdown(),
-                          const SizedBox(height: 16),
-                          buildTextField(
-                            label: '${context.opTranslate('mobile_number')} *',
-                            controller: mobileController,
-                            hint: context.opTranslate('enter_mobile_number'),
-                            icon: Icons.phone,
-                            maxLength: 10,
-                            keyboardType: TextInputType.phone,
-                            fieldKey: _mobileFieldKey,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            validator: (val) {
-                              if (val == null || val.isEmpty) {
-                                return context.opTranslate('mobile_required');
-                              }
-                              if (val.length != 10) {
-                                return context.opTranslate('mobile_invalid');
-                              }
-                              return null;
-                            },
-                          ),
+                          buildWardDropdown(),
+                          buildRoomBedDropdown(),
                         ],
                       ),
                     ),
@@ -219,11 +245,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                         setState(() {
                           _hasValidatedOnce = true;
                         });
-
-                        if (_formKey.currentState!.validate()) {
-                          // NO API CALL - Use cached data only
-                          _navigateToEmojiPage();
-                        }
+                        _navigateToEmojiPage();
                       },
                       icon:
                           const Icon(Icons.arrow_forward, color: Colors.white),
@@ -252,41 +274,6 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
         ),
       ),
     );
-  }
-
-  /// Navigate to emoji page using cached question sets (NO API CALL)
-  void _navigateToEmojiPage() async {
-    try {
-      // Get cached question sets for selected department
-      final cachedQuestionSets =
-          await OPDataLoader.getCachedQuestionSets(selectedDepartment!);
-
-      if (mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => FeedbackScreen(
-              questionSets: cachedQuestionSets,
-              feedbackData: FeedbackData(
-                name: nameController.text,
-                uhid: uhidController.text,
-                department: selectedDepartment!,
-                mobileNumber: mobileController.text,
-              ),
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(context.opTranslate('failed_to_load')),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
   }
 
   Widget buildTextField({
@@ -326,15 +313,16 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
     );
   }
 
-  Widget buildDropdown() {
+  Widget buildWardDropdown() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-            '${context.opTranslate('select_department').replaceAll('Select ', '')} *',
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+          '${context.opTranslate('select_floor_ward')} *',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
         const SizedBox(height: 6),
-        isLoadingDepartments
+        isLoadingWards
             ? Container(
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 decoration: BoxDecoration(
@@ -366,39 +354,131 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
               )
             : LayoutBuilder(
                 builder: (context, constraints) {
+                  final globalLang = OPLocalizationService.currentLanguage;
                   return DropdownButtonFormField<String>(
-                    key: _departmentFieldKey,
+                    key: _wardFieldKey,
                     isExpanded: true,
-                    value: selectedDepartment,
+                    value: selectedWard,
                     decoration: inputDecoration(
-                            context.opTranslate('select_department'))
+                            context.opTranslate('select_floor_ward'))
                         .copyWith(prefixIcon: const Icon(Icons.local_hospital)),
-                    items: departments
-                        .map((dept) => DropdownMenuItem(
-                              value: dept.title,
-                              child: Text(
-                                dept.title,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ))
-                        .toList(),
+                    items: wards.map((ward) {
+                      final displayTitle = apiText(
+                        ward.title,
+                        ward.titlek,
+                        ward.titlem,
+                        globalLang,
+                      );
+                      return DropdownMenuItem(
+                        value: ward.title, // Store English title as value
+                        child: Text(
+                          displayTitle,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 1,
+                        ),
+                      );
+                    }).toList(),
                     onChanged: (value) {
                       setState(() {
-                        selectedDepartment = value;
+                        selectedWard = value;
                       });
+                      // Load bed numbers from selected ward's bedno array
+                      _loadBedNumbers(value);
                       // After first validation attempt, validate this field when it changes
                       if (_hasValidatedOnce &&
-                          _departmentFieldKey.currentState != null) {
-                        _departmentFieldKey.currentState!.validate();
+                          _wardFieldKey.currentState != null) {
+                        _wardFieldKey.currentState!.validate();
                       }
                     },
                     validator: (value) => value == null
-                        ? context.opTranslate('department_required')
+                        ? context.opTranslate('floor_ward_required')
                         : null,
                   );
                 },
               ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget buildRoomBedDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '${context.opTranslate('room_bed_number')} *',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        selectedWard == null
+            ? Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F3F6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    context.opTranslate('select_ward_first'),
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              )
+            : bedNumbers.isEmpty
+                ? Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F3F6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        context.opTranslate('no_beds_available'),
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      return DropdownButtonFormField<String>(
+                        key: _roomBedFieldKey,
+                        isExpanded: true,
+                        value: selectedRoomBed,
+                        decoration: inputDecoration(
+                                context.opTranslate('enter_room_bed_number'))
+                            .copyWith(prefixIcon: const Icon(Icons.bed)),
+                        items: bedNumbers
+                            .map((bedNo) => DropdownMenuItem(
+                                  value: bedNo,
+                                  child: Text(
+                                    bedNo,
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ))
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() {
+                            selectedRoomBed = value;
+                          });
+                          // After first validation attempt, validate this field when it changes
+                          if (_hasValidatedOnce &&
+                              _roomBedFieldKey.currentState != null) {
+                            _roomBedFieldKey.currentState!.validate();
+                          }
+                        },
+                        validator: (value) => value == null
+                            ? context.opTranslate('room_bed_required')
+                            : null,
+                      );
+                    },
+                  ),
         const SizedBox(height: 16),
       ],
     );

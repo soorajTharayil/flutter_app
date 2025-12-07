@@ -40,6 +40,29 @@ class _SplashScreenPageState extends State<SplashScreenPage>
     });
   }
 
+  /// Check if user is fully onboarded locally (without API calls)
+  /// Returns true if all required local session values exist
+  Future<bool> _isUserFullyOnboardedLocally(SharedPreferences prefs) async {
+    // Check all required flags
+    final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
+    final deviceId = prefs.getString('device_id') ?? '';
+    final domain = prefs.getString('domain') ?? '';
+    final domainCompleted = prefs.getBool('domain_completed') ?? false;
+    
+    // User is fully onboarded if:
+    // 1. User is logged in
+    // 2. Device ID exists
+    // 3. Domain exists and is completed
+    // 4. Not waiting for approval (already approved)
+    final waitingForApproval = prefs.getBool('waiting_for_approval') ?? false;
+    
+    return isLoggedIn && 
+           deviceId.isNotEmpty && 
+           domain.isNotEmpty && 
+           domainCompleted &&
+           !waitingForApproval;
+  }
+
   Future<void> _navigateNext() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -64,24 +87,52 @@ class _SplashScreenPageState extends State<SplashScreenPage>
     await prefs.setInt(
         'last_active_timestamp', DateTime.now().millisecondsSinceEpoch);
 
-    // Check if user is logged in and device is approved (Scenario A)
+    // CRITICAL: Check local onboarding state FIRST (before any API calls)
+    // This ensures offline navigation works correctly
+    final isFullyOnboarded = await _isUserFullyOnboardedLocally(prefs);
+    if (isFullyOnboarded) {
+      // User is fully onboarded locally - navigate directly to dashboard
+      // No API calls needed - works completely offline
+      if (mounted) {
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(builder: (context) => HomePage()));
+      }
+      return;
+    }
+
+    // If not fully onboarded locally, continue with existing flow
+    // Check if user is logged in (but might need API verification)
     final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
     if (isLoggedIn) {
       final deviceId = prefs.getString('device_id') ?? '';
       final domain = prefs.getString('domain') ?? '';
 
       if (deviceId.isNotEmpty && domain.isNotEmpty) {
-        // Check if device is approved
-        final isApproved =
-            await DeviceService.isDeviceApproved(deviceId, domain);
+        // Try to check device approval (non-blocking, will fallback if offline)
+        try {
+          final isApproved =
+              await DeviceService.isDeviceApproved(deviceId, domain)
+                  .timeout(const Duration(seconds: 5));
 
-        if (isApproved) {
-          // User is logged in and device is approved - go directly to dashboard
-          if (mounted) {
-            Navigator.pushReplacement(
-                context, MaterialPageRoute(builder: (context) => HomePage()));
+          if (isApproved) {
+            // User is logged in and device is approved - go directly to dashboard
+            if (mounted) {
+              Navigator.pushReplacement(
+                  context, MaterialPageRoute(builder: (context) => HomePage()));
+            }
+            return;
           }
-          return;
+        } catch (e) {
+          // API call failed (offline) - but user might still be onboarded
+          // Check local flags again as fallback
+          if (await _isUserFullyOnboardedLocally(prefs)) {
+            if (mounted) {
+              Navigator.pushReplacement(
+                  context, MaterialPageRoute(builder: (context) => HomePage()));
+            }
+            return;
+          }
+          // If not fully onboarded, continue to waiting approval check
         }
       }
     }
@@ -155,7 +206,22 @@ class _SplashScreenPageState extends State<SplashScreenPage>
       }
 
       // Check backend status (Scenario 2: admin might have approved while app was closed)
-      final statusResult = await DeviceService.checkDeviceStatus();
+      // Use timeout to prevent blocking when offline
+      Map<String, dynamic> statusResult;
+      try {
+        statusResult = await DeviceService.checkDeviceStatus()
+            .timeout(const Duration(seconds: 5));
+      } catch (e) {
+        // API call failed (offline) - show waiting page
+        // User can still use the app when online again
+        if (mounted) {
+          Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                  builder: (context) => const WaitingApprovalPage()));
+        }
+        return;
+      }
 
       if (!mounted) return;
 
