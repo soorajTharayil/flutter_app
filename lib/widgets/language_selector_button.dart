@@ -65,6 +65,8 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
   }
 
   void _togglePopup() {
+    // Dismiss the keyboard when language selector is tapped
+    FocusScope.of(context).unfocus();
     if (_isPopupOpen) {
       _closePopup();
     } else {
@@ -102,7 +104,7 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
     final size = renderBox?.size ?? const Size(100, 40);
     final buttonOffset = renderBox?.localToGlobal(Offset.zero) ?? Offset.zero;
     final popupWidth = 320.0;
-    
+
     // Calculate button center position (top-right corner)
     final buttonCenterX = buttonOffset.dx + size.width / 2;
     final buttonCenterY = buttonOffset.dy + size.height / 2;
@@ -110,15 +112,15 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
     return OverlayEntry(
       builder: (overlayContext) {
         final screenSize = MediaQuery.of(overlayContext).size;
-        
+
         // Calculate screen center position
         final screenCenterX = screenSize.width / 2;
         final screenCenterY = screenSize.height / 2;
-        
+
         // Calculate offset from button to center for animation
         final deltaX = screenCenterX - buttonCenterX;
         final deltaY = screenCenterY - buttonCenterY;
-        
+
         return GestureDetector(
           onTap: _closePopup,
           behavior: HitTestBehavior.opaque,
@@ -132,7 +134,8 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
                     animation: _fadeAnimation,
                     builder: (context, child) {
                       return Container(
-                        color: Colors.black.withOpacity(0.4 * _fadeAnimation.value),
+                        color: Colors.black
+                            .withOpacity(0.4 * _fadeAnimation.value),
                       );
                     },
                   ),
@@ -147,148 +150,155 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
                         // Calculate current position interpolated from button to center
                         final currentX = deltaX * (1 - _slideAnimation.value);
                         final currentY = deltaY * (1 - _slideAnimation.value);
-                      
-                      return Transform.translate(
-                        offset: Offset(currentX, currentY),
-                        child: Transform.scale(
-                          scale: _scaleAnimation.value,
-                          alignment: Alignment.center,
-                          child: Opacity(
-                            opacity: _fadeAnimation.value,
-                            child: Material(
-                              elevation: 20,
-                              borderRadius: BorderRadius.circular(24),
-                              color: Colors.white,
-                              shadowColor: Colors.black.withOpacity(0.25),
-                              child: Container(
-                                width: popupWidth,
-                                constraints: const BoxConstraints(maxHeight: 500),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(24),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.15),
-                                      blurRadius: 30,
-                                      offset: const Offset(0, 10),
-                                      spreadRadius: 0,
-                                    ),
-                                  ],
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    // Premium header with icon
-                                    Container(
-                                      padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
-                                      decoration: BoxDecoration(
-                                        gradient: LinearGradient(
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                          colors: [
-                                            efeedorBrandGreen.withOpacity(0.1),
-                                            efeedorBrandGreen.withOpacity(0.05),
-                                          ],
-                                        ),
-                                        borderRadius: const BorderRadius.only(
-                                          topLeft: Radius.circular(24),
-                                          topRight: Radius.circular(24),
-                                        ),
+
+                        return Transform.translate(
+                          offset: Offset(currentX, currentY),
+                          child: Transform.scale(
+                            scale: _scaleAnimation.value,
+                            alignment: Alignment.center,
+                            child: Opacity(
+                              opacity: _fadeAnimation.value,
+                              child: Material(
+                                elevation: 20,
+                                borderRadius: BorderRadius.circular(24),
+                                color: Colors.white,
+                                shadowColor: Colors.black.withOpacity(0.25),
+                                child: Container(
+                                  width: popupWidth,
+                                  constraints:
+                                      const BoxConstraints(maxHeight: 500),
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(24),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.15),
+                                        blurRadius: 30,
+                                        offset: const Offset(0, 10),
+                                        spreadRadius: 0,
                                       ),
-                                      child: Column(
-                                        children: [
-                                          // Icon circle
-                                          Container(
-                                            width: 64,
-                                            height: 64,
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                                colors: [
-                                                  efeedorBrandGreen,
-                                                  efeedorBrandGreen.withOpacity(0.8),
+                                    ],
+                                  ),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      // Premium header with icon
+                                      Container(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            24, 28, 24, 20),
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: [
+                                              efeedorBrandGreen
+                                                  .withOpacity(0.1),
+                                              efeedorBrandGreen
+                                                  .withOpacity(0.05),
+                                            ],
+                                          ),
+                                          borderRadius: const BorderRadius.only(
+                                            topLeft: Radius.circular(24),
+                                            topRight: Radius.circular(24),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            // Icon circle
+                                            Container(
+                                              width: 64,
+                                              height: 64,
+                                              decoration: BoxDecoration(
+                                                gradient: LinearGradient(
+                                                  begin: Alignment.topLeft,
+                                                  end: Alignment.bottomRight,
+                                                  colors: [
+                                                    efeedorBrandGreen,
+                                                    efeedorBrandGreen
+                                                        .withOpacity(0.8),
+                                                  ],
+                                                ),
+                                                shape: BoxShape.circle,
+                                                boxShadow: [
+                                                  BoxShadow(
+                                                    color: efeedorBrandGreen
+                                                        .withOpacity(0.3),
+                                                    blurRadius: 12,
+                                                    offset: const Offset(0, 4),
+                                                  ),
                                                 ],
                                               ),
-                                              shape: BoxShape.circle,
-                                              boxShadow: [
-                                                BoxShadow(
-                                                  color: efeedorBrandGreen.withOpacity(0.3),
-                                                  blurRadius: 12,
-                                                  offset: const Offset(0, 4),
-                                                ),
-                                              ],
+                                              child: const Icon(
+                                                Icons.language,
+                                                color: Colors.white,
+                                                size: 32,
+                                              ),
                                             ),
-                                            child: const Icon(
-                                              Icons.language,
-                                              color: Colors.white,
-                                              size: 32,
+                                            const SizedBox(height: 20),
+                                            // Title
+                                            const Text(
+                                              'Select Language',
+                                              style: TextStyle(
+                                                fontSize: 24,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.black87,
+                                                letterSpacing: 0.3,
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 20),
-                                          // Title
-                                          const Text(
-                                            'Select Language',
-                                            style: TextStyle(
-                                              fontSize: 24,
-                                              fontWeight: FontWeight.bold,
-                                              color: Colors.black87,
-                                              letterSpacing: 0.3,
+                                            const SizedBox(height: 8),
+                                            // Subtitle
+                                            Text(
+                                              'Choose your preferred language to continue',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w400,
+                                                color: Colors.grey[600],
+                                                height: 1.4,
+                                              ),
                                             ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          // Subtitle
-                                          Text(
-                                            'Choose your preferred language to continue',
-                                            textAlign: TextAlign.center,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w400,
-                                              color: Colors.grey[600],
-                                              height: 1.4,
-                                            ),
-                                          ),
-                                        ],
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                    // Language options
-                                    Padding(
-                                      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-                                      child: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          _buildLanguageItem(
-                                            'en',
-                                            'A',
-                                            'English',
-                                            'English',
-                                            overlayContext,
-                                          ),
-                                          const SizedBox(height: 12),
-                                          _buildLanguageItem(
-                                            'kn',
-                                            'ಕ',
-                                            'Kannada',
-                                            'ಕನ್ನಡ',
-                                            overlayContext,
-                                          ),
-                                          const SizedBox(height: 12),
-                                          _buildLanguageItem(
-                                            'ml',
-                                            'മ',
-                                            'Malayalam',
-                                            'മലയാളം',
-                                            overlayContext,
-                                          ),
-                                        ],
+                                      // Language options
+                                      Padding(
+                                        padding: const EdgeInsets.fromLTRB(
+                                            20, 12, 20, 20),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            _buildLanguageItem(
+                                              'en',
+                                              'A',
+                                              'English',
+                                              'English',
+                                              overlayContext,
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _buildLanguageItem(
+                                              'kn',
+                                              'ಕ',
+                                              'Kannada',
+                                              'ಕನ್ನಡ',
+                                              overlayContext,
+                                            ),
+                                            const SizedBox(height: 12),
+                                            _buildLanguageItem(
+                                              'ml',
+                                              'മ',
+                                              'Malayalam',
+                                              'മലയാളം',
+                                              overlayContext,
+                                            ),
+                                          ],
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                      );
+                        );
                       },
                     ),
                   ),
@@ -336,7 +346,7 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
   Widget build(BuildContext context) {
     final currentLang = OPLocalizationService.currentLanguage;
     final languageName = _getLanguageName(currentLang);
-    
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
       child: GestureDetector(
@@ -394,7 +404,7 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
   ) {
     final isSelected = OPLocalizationService.currentLanguage == code;
     final iconColor = _getLanguageIconColor(code);
-    
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -412,9 +422,7 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
                 : Colors.grey[50],
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: isSelected
-                  ? efeedorBrandGreen
-                  : Colors.grey[300]!,
+              color: isSelected ? efeedorBrandGreen : Colors.grey[300]!,
               width: isSelected ? 2 : 1.5,
             ),
             boxShadow: isSelected
@@ -462,7 +470,8 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
                       title,
                       style: TextStyle(
                         fontSize: 16,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+                        fontWeight:
+                            isSelected ? FontWeight.w700 : FontWeight.w600,
                         color: isSelected ? efeedorBrandGreen : Colors.black87,
                         letterSpacing: 0.2,
                       ),

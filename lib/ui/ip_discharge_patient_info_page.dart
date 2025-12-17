@@ -9,6 +9,7 @@ import '../services/ip_data_loader.dart';
 import '../model/ward_model.dart';
 import '../model/ip_feedback_data_model.dart';
 import 'ip_discharge_emoji_page.dart';
+import '../widgets/hospital_logo_widget.dart';
 
 /// Language helper function: returns the correct API text based on selected language
 String apiText(String en, String kn, String ml, String lang) {
@@ -70,6 +71,8 @@ class _IPDischargePatientInfoPageState
   void _onLanguageChanged() {
     if (mounted) {
       setState(() {});
+      // Dismiss the keyboard when language changes
+      FocusScope.of(context).unfocus();
     }
   }
 
@@ -149,12 +152,29 @@ class _IPDischargePatientInfoPageState
   @override
   Widget build(BuildContext context) {
     return AppHeaderWrapper(
-      title: context.opTranslate('patient_information'),
+      titleWidget: Text(
+        context.opTranslate('Patient Details'),
+        style: const TextStyle(
+          fontSize: 16, // adjust to 14 or 15 if you want even smaller
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+      ),
       showLogo: false,
       showLanguageSelector: true,
       child: SafeArea(
         child: Column(
           children: [
+            // -------------------- Hospital Logo (Same as Home Page) --------------------
+            const HospitalLogoWidget(
+              height: 80,
+              padding: EdgeInsets.all(16),
+              showRectangular: true,
+              showCircular: false,
+            ),
+            const SizedBox(height: 2),
+// ---------------------------------------------------------------------------
+
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -171,6 +191,21 @@ class _IPDischargePatientInfoPageState
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          // -------------------- Page Heading --------------------
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "IP Discharge Feedback Form",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.teal, // Teal-green
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
+// -------------------------------------------------------
+
                           buildTextField(
                             label: '${context.opTranslate('patient_name')} *',
                             controller: _nameController,
@@ -196,14 +231,19 @@ class _IPDischargePatientInfoPageState
                             hint: context.opTranslate('enter_ip_uhid'),
                             icon: Icons.badge,
                             maxLength: 20,
-                            keyboardType: TextInputType.text,
+                            keyboardType: TextInputType.number,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly
+                            ],
                             fieldKey: _uhidFieldKey,
                             validator: (val) => val == null || val.isEmpty
                                 ? context.opTranslate('uhid_required')
                                 : null,
                           ),
                           buildWardDropdown(),
+                          const SizedBox(height: 20),
                           buildRoomBedDropdown(),
+                          // <-- SAME GAP AS NAME–UHID
                         ],
                       ),
                     ),
@@ -290,8 +330,13 @@ class _IPDischargePatientInfoPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.w700, // ← BOLD
+          ),
+        ),
         const SizedBox(height: 6),
         TextFormField(
           key: fieldKey,
@@ -446,36 +491,29 @@ class _IPDischargePatientInfoPageState
                   )
                 : LayoutBuilder(
                     builder: (context, constraints) {
-                      return DropdownButtonFormField<String>(
+                      return TextFormField(
                         key: _roomBedFieldKey,
-                        isExpanded: true,
-                        value: selectedRoomBed,
-                        decoration: inputDecoration(
-                                context.opTranslate('enter_room_bed_number'))
-                            .copyWith(prefixIcon: const Icon(Icons.bed)),
-                        items: bedNumbers
-                            .map((bedNo) => DropdownMenuItem(
-                                  value: bedNo,
-                                  child: Text(
-                                    bedNo,
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 1,
-                                  ),
-                                ))
-                            .toList(),
+                        controller:
+                            TextEditingController(text: selectedRoomBed),
                         onChanged: (value) {
                           setState(() {
                             selectedRoomBed = value;
                           });
-                          // After first validation attempt, validate this field when it changes
+
                           if (_hasValidatedOnce &&
                               _roomBedFieldKey.currentState != null) {
                             _roomBedFieldKey.currentState!.validate();
                           }
                         },
-                        validator: (value) => value == null
-                            ? context.opTranslate('room_bed_required')
-                            : null,
+                        decoration: inputDecoration(
+                          context.opTranslate('enter_room_bed_number'),
+                        ).copyWith(
+                          prefixIcon: const Icon(Icons.bed),
+                        ),
+                        validator: (value) =>
+                            (value == null || value.trim().isEmpty)
+                                ? context.opTranslate('room_bed_required')
+                                : null,
                       );
                     },
                   ),

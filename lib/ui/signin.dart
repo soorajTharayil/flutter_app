@@ -165,6 +165,7 @@ class _SignInState extends State<SignIn> {
         final userId = responseData['userid']?.toString() ?? '';
         final email = responseData['email']?.toString() ?? '';
         final name = responseData['name']?.toString() ?? email;
+        final mobile = responseData['mobile']?.toString() ?? '';
 
         // Save user data
         final permissions = <String, dynamic>{};
@@ -172,7 +173,8 @@ class _SignInState extends State<SignIn> {
           if (key != 'status' &&
               key != 'userid' &&
               key != 'email' &&
-              key != 'name') {
+              key != 'name' &&
+              key != 'mobile') {
             permissions[key] = value;
           }
         });
@@ -180,6 +182,7 @@ class _SignInState extends State<SignIn> {
         await prefs.setString('userid', userId);
         await prefs.setString('email', email);
         await prefs.setString('name', name);
+        await prefs.setString('mobile', mobile);
 
         // Step 2: Check if device is already approved (one-time approval)
         final deviceInfo = await DeviceService.getDeviceInfo();

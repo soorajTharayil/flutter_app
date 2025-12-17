@@ -292,16 +292,18 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                    itemCount: _questionSets.length + 1, // +1 for welcome message
+                    itemCount:
+                        _questionSets.length + 1, // +1 for welcome message
                     itemBuilder: (context, i) {
                       // Added Welcome Message Block (DO NOT MODIFY ANY OTHER LOGIC)
                       if (i == 0) {
-                        final patientName = widget.feedbackData.name.isNotEmpty 
-                            ? widget.feedbackData.name 
+                        final patientName = widget.feedbackData.name.isNotEmpty
+                            ? widget.feedbackData.name
                             : 'Guest';
                         return Container(
                           margin: const EdgeInsets.only(bottom: 24),
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 12),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF9F9F9),
                             borderRadius: BorderRadius.circular(12),
@@ -322,7 +324,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                               Text(
                                 'Thank you for choosing our hospital for your healthcare needs. We work constantly to improve and meet your expectations. To serve our patients better, kindly spare a few minutes to fill this feedback form. Your opinion is of immense value to us.',
                                 style: const TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 16,
                                   fontWeight: FontWeight.normal,
                                   color: Colors.black87,
                                   height: 1.5,
@@ -332,7 +334,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           ),
                         );
                       }
-                      
+
                       // Original question set items (index adjusted for welcome message)
                       final set = _questionSets[i - 1];
                       return Padding(
@@ -350,7 +352,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                 Center(
                                   child: Builder(
                                     builder: (context) {
-                                      final globalLang = OPLocalizationService.currentLanguage;
+                                      final globalLang =
+                                          OPLocalizationService.currentLanguage;
                                       final displayedCategory = apiText(
                                           set.category,
                                           set.categoryk,
@@ -383,7 +386,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                         displayedQuestion,
                                         style: const TextStyle(
                                           fontSize: 16,
-                                          fontWeight: FontWeight.w700,
+                                          fontWeight: FontWeight.normal,
                                           color: Colors.black87,
                                           height: 1.4,
                                         ),
@@ -395,23 +398,39 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                         children: [
                                           Expanded(
                                             child: buildEmojiWithLabel(
-                                                '😞', 1, q.id, context.opTranslate('worst')),
+                                                '😞',
+                                                1,
+                                                q.id,
+                                                context.opTranslate('worst')),
                                           ),
                                           Expanded(
                                             child: buildEmojiWithLabel(
-                                                '😕', 2, q.id, context.opTranslate('poor')),
+                                                '😕',
+                                                2,
+                                                q.id,
+                                                context.opTranslate('poor')),
                                           ),
                                           Expanded(
                                             child: buildEmojiWithLabel(
-                                                '😐', 3, q.id, context.opTranslate('average')),
+                                                '😐',
+                                                3,
+                                                q.id,
+                                                context.opTranslate('average')),
                                           ),
                                           Expanded(
                                             child: buildEmojiWithLabel(
-                                                '🙂', 4, q.id, context.opTranslate('good')),
+                                                '🙂',
+                                                4,
+                                                q.id,
+                                                context.opTranslate('good')),
                                           ),
                                           Expanded(
                                             child: buildEmojiWithLabel(
-                                                '😊', 5, q.id, context.opTranslate('excellent')),
+                                                '😊',
+                                                5,
+                                                q.id,
+                                                context
+                                                    .opTranslate('excellent')),
                                           ),
                                         ],
                                       ),
@@ -456,7 +475,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                               ),
                                               const SizedBox(height: 16),
                                               ...q.negative.map((sub) {
-                                                final globalLang = OPLocalizationService.currentLanguage;
+                                                final globalLang =
+                                                    OPLocalizationService
+                                                        .currentLanguage;
                                                 final negQuestion = apiText(
                                                     sub.question,
                                                     sub.questionk,
@@ -555,7 +576,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                                       in q.negative) {
                                                     if (reasons[sub.id] ==
                                                         true) {
-                                                      final globalLang = OPLocalizationService.currentLanguage;
+                                                      final globalLang =
+                                                          OPLocalizationService
+                                                              .currentLanguage;
                                                       final subText = apiText(
                                                               sub.question,
                                                               sub.questionk,

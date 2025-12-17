@@ -10,6 +10,7 @@ import '../services/ip_data_loader.dart';
 import '../model/ip_feedback_data_model.dart';
 import 'ip_discharge_patient_info_page.dart';
 import 'ip_discharge_emoji_page.dart';
+import '../widgets/hospital_logo_widget.dart';
 
 class IPDischargeMobilePage extends StatefulWidget {
   const IPDischargeMobilePage({Key? key}) : super(key: key);
@@ -130,12 +131,27 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
   @override
   Widget build(BuildContext context) {
     return AppHeaderWrapper(
-      title: context.opTranslate('registered_mobile_number'),
+       titleWidget: Text(
+        context.opTranslate('Patient Details'),
+        style: const TextStyle(
+          fontSize: 16, // adjust to 14 or 15 if you want even smaller
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+      ),
       showLogo: false,
       showLanguageSelector: true,
       child: SafeArea(
         child: Column(
           children: [
+            // -------------------- Hospital Logo (Same as Home Page) --------------------
+            const HospitalLogoWidget(
+              height: 80,
+              padding: EdgeInsets.all(16),
+              showRectangular: true,
+              showCircular: false,
+            ),
+            const SizedBox(height: 2),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -159,7 +175,7 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
-                              color: Colors.black87,
+                               color: Colors.teal, // Teal-green
                             ),
                           ),
                           const SizedBox(height: 12),

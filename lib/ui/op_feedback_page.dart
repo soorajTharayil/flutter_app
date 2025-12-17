@@ -9,6 +9,7 @@ import '../widgets/app_header_wrapper.dart';
 import '../services/op_app_localizations.dart';
 import '../services/op_localization_service.dart';
 import '../services/op_data_loader.dart';
+import '../widgets/hospital_logo_widget.dart';
 
 class OpFeedbackPage extends StatefulWidget {
   const OpFeedbackPage({Key? key}) : super(key: key);
@@ -110,12 +111,26 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
   @override
   Widget build(BuildContext context) {
     return AppHeaderWrapper(
-      title: context.opTranslate('patient_details'),
+      titleWidget: Text(
+        context.opTranslate('Patient Details'),
+        style: const TextStyle(
+          fontSize: 16, // adjust to 14 or 15 if you want even smaller
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+        ),
+      ),
       showLogo: false,
       showLanguageSelector: true,
       child: SafeArea(
         child: Column(
           children: [
+            const HospitalLogoWidget(
+              height: 80,
+              padding: EdgeInsets.all(16),
+              showRectangular: true,
+              showCircular: false,
+            ),
+            const SizedBox(height: 2),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -132,6 +147,19 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                           // -------------------- Page Heading --------------------
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              "Outpatient Feedback Form",
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.teal, // Teal-green
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 20),
                           buildTextField(
                             label: '${context.opTranslate('patient_name')} *',
                             controller: nameController,

@@ -36,15 +36,15 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
   bool isSubmitting = false; // Prevent double submission
 
   List<String> get generalReasons => [
-    context.opTranslate('location_proximity'),
-    context.opTranslate('specific_services_offered'),
-    context.opTranslate('referred_by_doctor'),
-    context.opTranslate('friend_family_recommendation'),
-    context.opTranslate('previous_experience'),
-    context.opTranslate('insurance_facilities'),
-    context.opTranslate('company_recommendation'),
-    context.opTranslate('print_online_media'),
-  ];
+        context.opTranslate('location_proximity'),
+        context.opTranslate('specific_services_offered'),
+        context.opTranslate('referred_by_doctor'),
+        context.opTranslate('friend_family_recommendation'),
+        context.opTranslate('previous_experience'),
+        context.opTranslate('insurance_facilities'),
+        context.opTranslate('company_recommendation'),
+        context.opTranslate('print_online_media'),
+      ];
 
   @override
   void initState() {
@@ -281,7 +281,7 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
       'wardid': 'ward001',
       // General reasons as boolean map
       ...generalReasonsMap,
-      'suggestions': suggestions,
+      'suggestionText': suggestions,
       'detractorcomment': detractorComment,
       'staffname': staffName,
     };
@@ -301,7 +301,7 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
         children: [
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 3, 16, 16),
               child: SingleChildScrollView(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -311,7 +311,8 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                       elevation: 4,
                       shadowColor: Colors.black.withOpacity(0.08),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20)),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
                       margin: const EdgeInsets.only(bottom: 20),
                       child: Padding(
                         padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
@@ -319,40 +320,35 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              context.opTranslate('net_promoter_score'),
+                              context.opTranslate(''),
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,
                                 color: efeedorBrandGreen,
                               ),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 1),
                             Text(
                               context.opTranslate('nps_question'),
                               style: const TextStyle(
-                                fontSize: 15,
+                                fontSize: 16,
                                 color: Colors.black87,
                                 height: 1.4,
                               ),
                             ),
                             const SizedBox(height: 24),
-                            // Modern square scale - responsive, no horizontal scrolling
+
+                            // ===== NPS SCALE (FIXED) =====
                             LayoutBuilder(
                               builder: (context, constraints) {
-                                // Calculate box width: (available width - spacing) / 11 boxes
-                                // 10 gaps of 3px between 11 boxes = 30px total spacing
-                                final availableWidth = constraints.maxWidth;
                                 final spacing = 3.0;
-                                final totalSpacing =
-                                    spacing * 10; // 10 gaps between 11 boxes
+                                final totalSpacing = spacing * 10;
                                 final boxWidth =
-                                    (availableWidth - totalSpacing) / 11;
+                                    (constraints.maxWidth - totalSpacing) / 11;
 
                                 return Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment: MainAxisAlignment.start,
                                   children: List.generate(11, (index) {
-                                    // Highlight all buttons from 0 to selected rating (only if rating is not null)
                                     final isHighlighted =
                                         rating != null && index <= rating!;
                                     final buttonColor = rating != null
@@ -360,83 +356,57 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                                         : const Color(0xFFE0E0E0);
                                     final defaultGrey = const Color(0xFFE0E0E0);
 
-                                    return Expanded(
-                                      child: Padding(
-                                        padding: EdgeInsets.only(
-                                          right: index < 10 ? spacing : 0,
-                                        ),
-                                        child: SizedBox(
-                                          width: boxWidth,
-                                          height: 32,
-                                          child: GestureDetector(
-                                            onTap: () {
-                                              setState(() {
-                                                rating = index;
-                                              });
-                                            },
-                                            child: AnimatedContainer(
-                                              duration: const Duration(
-                                                  milliseconds: 200),
-                                              curve: Curves.easeOut,
-                                              padding: const EdgeInsets.all(2),
-                                              decoration: BoxDecoration(
+                                    return Padding(
+                                      padding: EdgeInsets.only(
+                                        right: index < 10 ? spacing : 0,
+                                      ),
+                                      child: SizedBox(
+                                        width: boxWidth,
+                                        height: 32,
+                                        child: GestureDetector(
+                                          onTap: () {
+                                            setState(() {
+                                              rating = index;
+                                            });
+                                          },
+                                          child: AnimatedContainer(
+                                            duration: const Duration(
+                                                milliseconds: 200),
+                                            curve: Curves.easeOut,
+                                            alignment: Alignment.center,
+                                            decoration: BoxDecoration(
+                                              color: isHighlighted
+                                                  ? buttonColor
+                                                  : defaultGrey,
+                                              borderRadius: BorderRadius.only(
+                                                topLeft: index == 0
+                                                    ? const Radius.circular(4)
+                                                    : Radius.zero,
+                                                bottomLeft: index == 0
+                                                    ? const Radius.circular(4)
+                                                    : Radius.zero,
+                                                topRight: index == 10
+                                                    ? const Radius.circular(4)
+                                                    : Radius.zero,
+                                                bottomRight: index == 10
+                                                    ? const Radius.circular(4)
+                                                    : Radius.zero,
+                                              ),
+                                              border: Border.all(
                                                 color: isHighlighted
                                                     ? buttonColor
-                                                    : defaultGrey,
-                                                borderRadius: BorderRadius.only(
-                                                  topLeft: index == 0
-                                                      ? const Radius.circular(4)
-                                                      : Radius.zero,
-                                                  bottomLeft: index == 0
-                                                      ? const Radius.circular(4)
-                                                      : Radius.zero,
-                                                  topRight: index == 10
-                                                      ? const Radius.circular(4)
-                                                      : Radius.zero,
-                                                  bottomRight: index == 10
-                                                      ? const Radius.circular(4)
-                                                      : Radius.zero,
-                                                ),
-                                                border: Border(
-                                                  left: BorderSide(
-                                                    color: isHighlighted
-                                                        ? buttonColor
-                                                        : Colors.grey.shade300,
-                                                    width: index == 0 ? 1.5 : 0,
-                                                  ),
-                                                  right: BorderSide(
-                                                    color: isHighlighted
-                                                        ? buttonColor
-                                                        : Colors.grey.shade300,
-                                                    width: 1.5,
-                                                  ),
-                                                  top: BorderSide(
-                                                    color: isHighlighted
-                                                        ? buttonColor
-                                                        : Colors.grey.shade300,
-                                                    width: 1.5,
-                                                  ),
-                                                  bottom: BorderSide(
-                                                    color: isHighlighted
-                                                        ? buttonColor
-                                                        : Colors.grey.shade300,
-                                                    width: 1.5,
-                                                  ),
-                                                ),
+                                                    : Colors.grey.shade300,
+                                                width: 1.5,
                                               ),
-                                              alignment: Alignment.center,
-                                              child: Text(
-                                                '$index',
-                                                textAlign: TextAlign.center,
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.w700,
-                                                  fontSize: 14,
-                                                  color: (index >= 9)
-                                                      ? Colors.black
-                                                      : (isHighlighted
-                                                          ? Colors.white
-                                                          : Colors.black87),
-                                                ),
+                                            ),
+                                            child: Text(
+                                              '$index',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w700,
+                                                fontSize: 14,
+                                                color: isHighlighted
+                                                    ? Colors.white
+                                                    : Colors.black87,
                                               ),
                                             ),
                                           ),
@@ -447,14 +417,16 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                                 );
                               },
                             ),
+
                             const SizedBox(height: 20),
+
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
                                   context.opTranslate('not_at_all_likely'),
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.grey.shade600,
                                   ),
@@ -462,15 +434,16 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                                 Text(
                                   context.opTranslate('extremely_likely'),
                                   style: TextStyle(
-                                    fontSize: 11,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.grey.shade600,
                                   ),
                                 ),
                               ],
                             ),
+
                             const SizedBox(height: 16),
-                            // Show selected rating only if a rating is selected
+
                             if (rating != null)
                               Container(
                                 padding: const EdgeInsets.all(12),
@@ -478,26 +451,16 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                                   color: efeedorBrandGreen.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.star,
-                                      color: efeedorBrandGreen,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '${context.opTranslate('selected_rating')}: $rating',
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: efeedorBrandGreen,
-                                      ),
-                                    ),
-                                  ],
+                                child: Text(
+                                  '${context.opTranslate('selected_rating')}: $rating',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: efeedorBrandGreen,
+                                  ),
                                 ),
                               ),
-                            // Show detractor comment textbox for scores 0-6
+
                             AnimatedSize(
                               duration: const Duration(milliseconds: 200),
                               curve: Curves.easeOut,
@@ -510,28 +473,16 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                                         TextField(
                                           controller:
                                               detractorCommentController,
+                                          maxLines: 4,
                                           decoration: InputDecoration(
-                                            hintText:
-                                                context.opTranslate('please_tell_us_why_rating'),
-                                            hintStyle: TextStyle(
-                                              color: Colors.black
-                                                  .withOpacity(0.35),
+                                            hintText: context.opTranslate(
+                                              'please_tell_us_why_rating',
                                             ),
                                             filled: true,
                                             fillColor: Colors.white,
                                             border: OutlineInputBorder(
                                               borderRadius:
                                                   BorderRadius.circular(12),
-                                              borderSide: BorderSide(
-                                                color: Colors.grey.shade300,
-                                              ),
-                                            ),
-                                            enabledBorder: OutlineInputBorder(
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                              borderSide: BorderSide(
-                                                color: Colors.grey.shade300,
-                                              ),
                                             ),
                                             focusedBorder: OutlineInputBorder(
                                               borderRadius:
@@ -541,12 +492,7 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                                                 width: 1.8,
                                               ),
                                             ),
-                                            contentPadding:
-                                                const EdgeInsets.symmetric(
-                                                    horizontal: 16,
-                                                    vertical: 14),
                                           ),
-                                          maxLines: 4,
                                         ),
                                       ],
                                     )
@@ -556,6 +502,7 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                         ),
                       ),
                     ),
+
                     // SECTION 2: REASONS
                     Card(
                       elevation: 4,
@@ -569,7 +516,8 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              context.opTranslate('reason_for_selecting_hospital'),
+                              context
+                                  .opTranslate('reason_for_selecting_hospital'),
                               style: TextStyle(
                                 fontSize: 20,
                                 fontWeight: FontWeight.w800,
@@ -664,7 +612,8 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              context.opTranslate('staff_recognition_description'),
+                              context
+                                  .opTranslate('staff_recognition_description'),
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.black87,
@@ -731,7 +680,8 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              context.opTranslate('describe_reasons_or_suggestions'),
+                              context.opTranslate(
+                                  'describe_reasons_or_suggestions'),
                               style: const TextStyle(
                                 fontSize: 14,
                                 color: Colors.black87,
@@ -742,7 +692,8 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                             TextField(
                               controller: suggestionController,
                               decoration: InputDecoration(
-                                hintText: context.opTranslate('enter_suggestions'),
+                                hintText:
+                                    context.opTranslate('enter_suggestions'),
                                 hintStyle: TextStyle(
                                   color: Colors.black.withOpacity(0.35),
                                 ),
@@ -822,247 +773,263 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                 const SizedBox(width: 12),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: isSubmitting ? null : () async {
-                      // Prevent double submission
-                      if (isSubmitting) return;
-                      
-                      // Set submitting state immediately
-                      setState(() {
-                        isSubmitting = true;
-                      });
+                    onPressed: isSubmitting
+                        ? null
+                        : () async {
+                            // Prevent double submission
+                            if (isSubmitting) return;
 
-                      // Validation 1: NPS rating must be mandatory
-                      if (rating == null) {
-                        setState(() {
-                          isSubmitting = false;
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(context.opTranslate('please_select_nps_rating')),
-                            backgroundColor: Colors.red,
-                            duration: const Duration(seconds: 3),
-                          ),
-                        );
-                        return;
-                      }
-
-                      // Convert selectedReasons to boolean map format
-                      final Map<String, bool> generalReasonsMap = {
-                        'location': selectedReasons[0],
-                        'specificservice': selectedReasons[1],
-                        'referred': selectedReasons[2],
-                        'friend': selectedReasons[3],
-                        'previous': selectedReasons[4],
-                        'docAvailability': selectedReasons[5],
-                        'companyRecommend': selectedReasons[6],
-                        'otherReason': selectedReasons[7],
-                      };
-
-                      // Determine detractor comment based on rating
-                      final String detractorComment = rating! <= 6
-                          ? detractorCommentController.text.trim()
-                          : '';
-
-                      // Validation 2: Detractor comment must be mandatory for ratings 0-6
-                      if (rating! <= 6 && detractorComment.isEmpty) {
-                        setState(() {
-                          isSubmitting = false;
-                        });
-                        showDialog(
-                          context: context,
-                          builder: (_) => AlertDialog(
-                            title: Text(context.opTranslate('comment_required')),
-                            content: Text(
-                                context.opTranslate('please_tell_us_why_rating_dialog')),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: Text(context.opTranslate('ok')),
-                              ),
-                            ],
-                          ),
-                        );
-                        return;
-                      }
-
-                      // Build the correct JSON payload structure
-                      final feedbackPayload = buildFeedbackPayload(
-                        feedbackData,
-                        rating!,
-                        suggestionController.text,
-                        generalReasonsMap,
-                        detractorComment,
-                        staffNameController.text.trim(),
-                      );
-
-                      // Get domain from SharedPreferences
-                      final domain = await getDomainFromPrefs();
-                      if (domain.isEmpty) {
-                        setState(() {
-                          isSubmitting = false;
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content: Text(
-                                  context.opTranslate('domain_not_found'))),
-                        );
-                        return;
-                      }
-
-                      // Check if online
-                      final online = await isOnline();
-
-                      // If offline, save to local storage
-                      if (!online) {
-                        try {
-                          // Save IP feedback offline
-                          await OfflineStorageService.saveOfflineIPFeedback(
-                              feedbackPayload);
-
-                          // Show success message and navigate to thank you page
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    context.opTranslate('feedback_stored_offline')),
-                                backgroundColor: Colors.orange,
-                                duration: const Duration(seconds: 3),
-                              ),
-                            );
-
-                            // Navigate to thank you page even when offline
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const ThankYouScreen()),
-                            );
-                          }
-                        } catch (e) {
-                          // MUST NOT crash UI - show error but don't throw
-                          if (mounted) {
+                            // Set submitting state immediately
                             setState(() {
-                              isSubmitting = false;
+                              isSubmitting = true;
                             });
-                            showDialog(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                title: Text(context.opTranslate('error')),
-                                content: Text(
-                                    context.opTranslate('failed_to_save_offline')),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: Text(context.opTranslate('ok')),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }
-                        }
-                        return; // Exit early when offline
-                      }
 
-                      // If online, proceed with normal API call
-                      final uri = Uri.parse(
-                        'https://$domain.efeedor.com/api/savepatientfeedback.php?patient_id=${feedbackData.uhid}&administratorId=admin001',
-                      );
-
-                      try {
-                        final response = await http
-                            .post(
-                          uri,
-                          headers: {'Content-Type': 'application/json'},
-                          body: jsonEncode(feedbackPayload),
-                        )
-                            .timeout(
-                          const Duration(seconds: 30),
-                          onTimeout: () {
-                            throw Exception('Request timeout');
-                          },
-                        );
-
-                        final responseData = jsonDecode(response.body);
-                        if (responseData['status'] == 'success') {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                                builder: (context) => const ThankYouScreen()),
-                          );
-                        } else {
-                          setState(() {
-                            isSubmitting = false;
-                          });
-                          showDialog(
-                            context: context,
-                            builder: (_) => AlertDialog(
-                              title: Text(context.opTranslate('feedback_already_submitted')),
-                              content: Text(
-                                  context.opTranslate('feedback_already_submitted_message')),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  child: Text(context.opTranslate('ok')),
+                            // Validation 1: NPS rating must be mandatory
+                            if (rating == null) {
+                              setState(() {
+                                isSubmitting = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(context
+                                      .opTranslate('please_select_nps_rating')),
+                                  backgroundColor: Colors.red,
+                                  duration: const Duration(seconds: 3),
                                 ),
-                              ],
-                            ),
-                          );
-                        }
-                      } catch (e) {
-                        // If online but API call fails, treat as offline and save locally
-                        try {
-                          await OfflineStorageService.saveOfflineIPFeedback(
-                              feedbackPayload);
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                    context.opTranslate('network_error_offline')),
-                                backgroundColor: Colors.orange,
-                                duration: const Duration(seconds: 3),
-                              ),
+                              );
+                              return;
+                            }
+
+                            // Convert selectedReasons to boolean map format
+                            final Map<String, bool> generalReasonsMap = {
+                              'location': selectedReasons[0],
+                              'specificservice': selectedReasons[1],
+                              'referred': selectedReasons[2],
+                              'friend': selectedReasons[3],
+                              'previous': selectedReasons[4],
+                              'docAvailability': selectedReasons[5],
+                              'companyRecommend': selectedReasons[6],
+                              'otherReason': selectedReasons[7],
+                            };
+
+                            // Determine detractor comment based on rating
+                            final String detractorComment = rating! <= 6
+                                ? detractorCommentController.text.trim()
+                                : '';
+
+                            // Validation 2: Detractor comment must be mandatory for ratings 0-6
+                            if (rating! <= 6 && detractorComment.isEmpty) {
+                              setState(() {
+                                isSubmitting = false;
+                              });
+                              showDialog(
+                                context: context,
+                                builder: (_) => AlertDialog(
+                                  title: Text(
+                                      context.opTranslate('comment_required')),
+                                  content: Text(context.opTranslate(
+                                      'please_tell_us_why_rating_dialog')),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () => Navigator.pop(context),
+                                      child: Text(context.opTranslate('ok')),
+                                    ),
+                                  ],
+                                ),
+                              );
+                              return;
+                            }
+
+                            // Build the correct JSON payload structure
+                            final feedbackPayload = buildFeedbackPayload(
+                              feedbackData,
+                              rating!,
+                              suggestionController.text,
+                              generalReasonsMap,
+                              detractorComment,
+                              staffNameController.text.trim(),
                             );
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                  builder: (context) => const ThankYouScreen()),
+
+                            // Get domain from SharedPreferences
+                            final domain = await getDomainFromPrefs();
+                            if (domain.isEmpty) {
+                              setState(() {
+                                isSubmitting = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                    content: Text(context
+                                        .opTranslate('domain_not_found'))),
+                              );
+                              return;
+                            }
+
+                            // Check if online
+                            final online = await isOnline();
+
+                            // If offline, save to local storage
+                            if (!online) {
+                              try {
+                                // Save IP feedback offline
+                                await OfflineStorageService
+                                    .saveOfflineIPFeedback(feedbackPayload);
+
+                                // Show success message and navigate to thank you page
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(context.opTranslate(
+                                          'feedback_stored_offline')),
+                                      backgroundColor: Colors.orange,
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+
+                                  // Navigate to thank you page even when offline
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ThankYouScreen()),
+                                  );
+                                }
+                              } catch (e) {
+                                // MUST NOT crash UI - show error but don't throw
+                                if (mounted) {
+                                  setState(() {
+                                    isSubmitting = false;
+                                  });
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => AlertDialog(
+                                      title: Text(context.opTranslate('error')),
+                                      content: Text(context.opTranslate(
+                                          'failed_to_save_offline')),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child:
+                                              Text(context.opTranslate('ok')),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              }
+                              return; // Exit early when offline
+                            }
+
+                            // If online, proceed with normal API call
+                            final uri = Uri.parse(
+                              'https://$domain.efeedor.com/api/savepatientfeedback.php?patient_id=${feedbackData.uhid}&administratorId=admin001',
                             );
-                          }
-                        } catch (offlineError) {
-                          // If offline save also fails, show error (MUST NOT crash)
-                          if (mounted) {
-                            setState(() {
-                              isSubmitting = false;
-                            });
-                            showDialog(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                title: Text(context.opTranslate('network_error')),
-                                content: Text(
-                                    context.opTranslate('check_internet_connection')),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    child: Text(context.opTranslate('ok')),
+
+                            try {
+                              final response = await http
+                                  .post(
+                                uri,
+                                headers: {'Content-Type': 'application/json'},
+                                body: jsonEncode(feedbackPayload),
+                              )
+                                  .timeout(
+                                const Duration(seconds: 30),
+                                onTimeout: () {
+                                  throw Exception('Request timeout');
+                                },
+                              );
+
+                              final responseData = jsonDecode(response.body);
+                              if (responseData['status'] == 'success') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          const ThankYouScreen()),
+                                );
+                              } else {
+                                setState(() {
+                                  isSubmitting = false;
+                                });
+                                showDialog(
+                                  context: context,
+                                  builder: (_) => AlertDialog(
+                                    title: Text(context.opTranslate(
+                                        'feedback_already_submitted')),
+                                    content: Text(context.opTranslate(
+                                        'feedback_already_submitted_message')),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: Text(context.opTranslate('ok')),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            );
-                          }
-                        }
-                      }
-                    },
+                                );
+                              }
+                            } catch (e) {
+                              // If online but API call fails, treat as offline and save locally
+                              try {
+                                await OfflineStorageService
+                                    .saveOfflineIPFeedback(feedbackPayload);
+                                if (mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(context.opTranslate(
+                                          'network_error_offline')),
+                                      backgroundColor: Colors.orange,
+                                      duration: const Duration(seconds: 3),
+                                    ),
+                                  );
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ThankYouScreen()),
+                                  );
+                                }
+                              } catch (offlineError) {
+                                // If offline save also fails, show error (MUST NOT crash)
+                                if (mounted) {
+                                  setState(() {
+                                    isSubmitting = false;
+                                  });
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => AlertDialog(
+                                      title: Text(
+                                          context.opTranslate('network_error')),
+                                      content: Text(context.opTranslate(
+                                          'check_internet_connection')),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(context),
+                                          child:
+                                              Text(context.opTranslate('ok')),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                }
+                              }
+                            }
+                          },
                     icon: isSubmitting
                         ? const SizedBox(
                             width: 20,
                             height: 20,
                             child: CircularProgressIndicator(
                               strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
                             ),
                           )
                         : const Icon(Icons.send, color: Colors.white),
                     label: Text(
-                      isSubmitting ? context.opTranslate('loading') : context.opTranslate('submit'),
+                      isSubmitting
+                          ? context.opTranslate('loading')
+                          : context.opTranslate('submit'),
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -1087,4 +1054,3 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
     );
   }
 }
-

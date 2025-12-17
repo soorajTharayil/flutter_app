@@ -4,6 +4,7 @@ import 'package:devkitflutter/widgets/app_header_bar.dart';
 class AppHeaderWrapper extends StatelessWidget {
   final Widget child;
   final String? title;
+  final Widget? titleWidget;
   final List<Widget>? actions;
   final bool showBackButton;
   final PreferredSizeWidget? bottom;
@@ -15,6 +16,7 @@ class AppHeaderWrapper extends StatelessWidget {
     Key? key,
     required this.child,
     this.title,
+    this.titleWidget,
     this.actions,
     this.showBackButton = true,
     this.bottom,
@@ -28,6 +30,7 @@ class AppHeaderWrapper extends StatelessWidget {
     return Scaffold(
       appBar: AppHeaderBar(
         title: title,
+        titleWidget: titleWidget,
         actions: actions,
         showBackButton: showBackButton,
         bottom: bottom,
@@ -39,4 +42,3 @@ class AppHeaderWrapper extends StatelessWidget {
     );
   }
 }
-

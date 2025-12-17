@@ -6,6 +6,7 @@ import 'package:devkitflutter/config/constant.dart';
 
 class AppHeaderBar extends StatefulWidget implements PreferredSizeWidget {
   final String? title;
+  final Widget? titleWidget;
   final List<Widget>? actions;
   final bool showBackButton;
   final PreferredSizeWidget? bottom;
@@ -15,6 +16,7 @@ class AppHeaderBar extends StatefulWidget implements PreferredSizeWidget {
   const AppHeaderBar({
     Key? key,
     this.title,
+    this.titleWidget,
     this.actions,
     this.showBackButton = true,
     this.bottom,
@@ -23,8 +25,8 @@ class AppHeaderBar extends StatefulWidget implements PreferredSizeWidget {
   }) : super(key: key);
 
   @override
-  Size get preferredSize => Size.fromHeight(
-      kToolbarHeight + (bottom?.preferredSize.height ?? 0.0));
+  Size get preferredSize =>
+      Size.fromHeight(kToolbarHeight + (bottom?.preferredSize.height ?? 0.0));
 
   @override
   State<AppHeaderBar> createState() => _AppHeaderBarState();
@@ -125,7 +127,8 @@ class _AppHeaderBarState extends State<AppHeaderBar> {
             _logoBytes!,
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) {
-              return const Icon(Icons.local_hospital, color: Colors.grey, size: 28);
+              return const Icon(Icons.local_hospital,
+                  color: Colors.grey, size: 28);
             },
           ),
         ),
@@ -149,6 +152,10 @@ class _AppHeaderBarState extends State<AppHeaderBar> {
   }
 
   Widget _buildTitle() {
+    if (widget.titleWidget != null) {
+      return widget.titleWidget!;
+    }
+
     if (widget.title == null) {
       return const SizedBox.shrink();
     }
@@ -171,11 +178,11 @@ class _AppHeaderBarState extends State<AppHeaderBar> {
   @override
   Widget build(BuildContext context) {
     final List<Widget> appBarActions = [];
-    
+
     if (widget.showLanguageSelector) {
       appBarActions.add(const LanguageSelectorButton());
     }
-    
+
     if (widget.actions != null) {
       appBarActions.addAll(widget.actions!);
     }
@@ -195,7 +202,9 @@ class _AppHeaderBarState extends State<AppHeaderBar> {
             _buildLogo(),
             const SizedBox(width: 12),
           ],
-          if (_hospitalName != null && widget.title == null && widget.showLogo) ...[
+          if (_hospitalName != null &&
+              widget.title == null &&
+              widget.showLogo) ...[
             Flexible(
               child: Text(
                 _hospitalName!,
@@ -220,4 +229,3 @@ class _AppHeaderBarState extends State<AppHeaderBar> {
     );
   }
 }
-
