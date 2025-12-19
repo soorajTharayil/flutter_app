@@ -363,12 +363,9 @@ class _HomePageState extends State<HomePage> {
       {
         'icon': Icons.share,
         'title': 'Share',
-        'color': Colors.purple,
+        'color': Colors.grey, // visually disabled
         'action': () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const SharePage()),
-          );
+          // Blocked – no action
         },
       },
       {
@@ -504,7 +501,7 @@ class _HomePageState extends State<HomePage> {
     final email = prefs.getString('email') ?? 'user@example.com';
     final address = prefs.getString('user_address') ?? 'No address provided';
     final mobile =
-        prefs.getString('user_mobile') ?? 'No mobile number provided';
+        prefs.getString('mobile') ?? 'No mobile number provided';
 
     showModalBottomSheet(
       context: context,

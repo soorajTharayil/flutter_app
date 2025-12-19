@@ -147,11 +147,11 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                           // -------------------- Page Heading --------------------
+                          // -------------------- Page Heading --------------------
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              "Outpatient Feedback Form",
+                              context.opTranslate('op_feedback_form'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,

@@ -351,7 +351,7 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Dear $patientName,',
+                                    '${context.opTranslate('dear_patient')} $patientName,',
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
@@ -361,7 +361,7 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Thank you for choosing our hospital for your healthcare needs. We work constantly to improve and meet your expectations. To serve our patients better, kindly spare a few minutes to fill this feedback form. Your opinion is of immense value to us.',
+                                    context.opTranslate('thank_you_message'),
                                     style: const TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.normal,

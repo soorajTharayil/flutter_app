@@ -10,6 +10,7 @@ import 'package:devkitflutter/ui/home_module_button.dart';
 import 'package:devkitflutter/services/device_service.dart';
 import 'package:devkitflutter/services/ip_service.dart';
 import 'package:devkitflutter/ui/waiting_approval_page.dart';
+import 'package:devkitflutter/ui/domain_login_page.dart';
 
 class SignIn extends StatefulWidget {
   const SignIn({Key? key}) : super(key: key);
@@ -25,10 +26,27 @@ class _SignInState extends State<SignIn> {
   bool _obscureText = true;
   IconData _iconVisible = Icons.visibility_off;
   bool _isSigningIn = false; // Loading state for Sign-In button
+  String _domain = ''; // Store domain value
 
   // Efeedor themed colors (UI only)
   final Color _mainColor = efeedorBrandGreen; // primary action color
   final Color _underlineColor = const Color(0xFFDDDDDD);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDomain();
+  }
+
+  Future<void> _loadDomain() async {
+    final prefs = await SharedPreferences.getInstance();
+    final domain = prefs.getString('domain') ?? '';
+    if (mounted) {
+      setState(() {
+        _domain = domain;
+      });
+    }
+  }
 
   void _toggleObscureText() {
     setState(() {
@@ -340,6 +358,57 @@ class _SignInState extends State<SignIn> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: <Widget>[
                             const SizedBox(height: 16),
+                            // Domain display section
+                            if (_domain.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey[50],
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: Colors.grey[200]!),
+                                ),
+                                child: Row(
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        'You are logged in with $_domain.efeedor.com',
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.black87,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                DomainLoginPage(),
+                                          ),
+                                        );
+                                      },
+                                      style: TextButton.styleFrom(
+                                        padding: const EdgeInsets.symmetric(
+                                            horizontal: 12, vertical: 6),
+                                        minimumSize: Size.zero,
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                      ),
+                                      child: const Text(
+                                        'Change',
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            if (_domain.isNotEmpty) const SizedBox(height: 16),
                             Text(
                               'Sign in',
                               style: TextStyle(

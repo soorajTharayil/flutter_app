@@ -266,7 +266,7 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
       ...ratingValues,
       // Keep existing required fields
       'recommend1Score': npsRating / 2,
-      'source': 'WLink',
+      'source': 'APP',
       'name': feedbackData.name,
       'patientid': feedbackData.uhid,
       'ward': feedbackData.department,

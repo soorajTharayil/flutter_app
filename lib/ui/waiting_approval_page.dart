@@ -29,7 +29,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
 
   Future<void> _initializeWaitingState() async {
     final prefs = await SharedPreferences.getInstance();
-    
+
     // Get approval requested time from SharedPreferences
     final approvalRequestedAtStr = prefs.getString('approval_requested_at');
     if (approvalRequestedAtStr != null) {
@@ -37,20 +37,21 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
     } else {
       _startTime = DateTime.now();
       // Save if not already saved
-      await prefs.setString('approval_requested_at', _startTime!.toIso8601String());
+      await prefs.setString(
+          'approval_requested_at', _startTime!.toIso8601String());
     }
-    
+
     // Ensure waiting state is saved
     await prefs.setBool('waiting_for_approval', true);
-    
+
     // Get device_id if not already saved
     final deviceInfo = await DeviceService.getDeviceInfo();
     final deviceId = deviceInfo['device_id']!;
-    
+
     if (deviceId.isNotEmpty) {
       await prefs.setString('device_id', deviceId);
     }
-    
+
     // Calculate expiry time (48 hours from start)
     _approvalExpiresAt = _startTime!.add(const Duration(hours: _timeoutHours));
   }
@@ -63,11 +64,11 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
 
   void _startPolling() {
     if (_isPolling) return;
-    
+
     _isPolling = true;
     // Check immediately
     _checkStatus();
-    
+
     // Then check every 5 seconds
     _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       _checkStatus();
@@ -85,13 +86,13 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
 
     try {
       final result = await DeviceService.checkDeviceStatus();
-      
+
       if (!mounted) return;
 
       if (result['success'] == true) {
         final status = result['status'] as String;
         final approvalExpiresAtStr = result['approval_expires_at'] as String?;
-        
+
         // Update expiry time from backend if available
         if (approvalExpiresAtStr != null) {
           _approvalExpiresAt = DateTime.parse(approvalExpiresAtStr);
@@ -125,7 +126,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
 
           case 'pending':
             // Continue polling - check if expired locally
-            if (_approvalExpiresAt != null && DateTime.now().isAfter(_approvalExpiresAt!)) {
+            if (_approvalExpiresAt != null &&
+                DateTime.now().isAfter(_approvalExpiresAt!)) {
               _stopPolling();
               await _clearWaitingState();
               _showExpiredDialog();
@@ -174,10 +176,11 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
     final prefs = await SharedPreferences.getInstance();
     final deviceId = prefs.getString('device_id') ?? '';
     final domain = prefs.getString('domain') ?? '';
-    
+
     if (deviceId.isNotEmpty && domain.isNotEmpty) {
       await prefs.setBool('is_logged_in', true);
-      await prefs.setInt('last_active_timestamp', DateTime.now().millisecondsSinceEpoch);
+      await prefs.setInt(
+          'last_active_timestamp', DateTime.now().millisecondsSinceEpoch);
       await prefs.setString('device_id', deviceId);
       await prefs.setString('domain', domain);
     }
@@ -189,7 +192,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text(
             'Device Blocked',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -226,7 +230,8 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
       barrierDismissible: false,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text(
             'Request Expired',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -288,12 +293,6 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
                 ),
                 const SizedBox(height: 30),
 
-                // Loading indicator
-                const CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(efeedorBrandGreen),
-                ),
-                const SizedBox(height: 30),
-
                 // Title
                 Text(
                   'Waiting for Approval',
@@ -318,33 +317,33 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
                 const SizedBox(height: 40),
 
                 // Timer
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: efeedorBrandGreen.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.access_time,
-                        color: efeedorBrandGreen,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Elapsed: ${_getElapsedTime()}',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: efeedorBrandGreen,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
+                // Container(
+                //   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                //   decoration: BoxDecoration(
+                //     color: efeedorBrandGreen.withOpacity(0.1),
+                //     borderRadius: BorderRadius.circular(10),
+                //   ),
+                //   child: Row(
+                //     mainAxisSize: MainAxisSize.min,
+                //     children: [
+                //       Icon(
+                //         Icons.access_time,
+                //         color: efeedorBrandGreen,
+                //         size: 20,
+                //       ),
+                //       const SizedBox(width: 8),
+                //       Text(
+                //         'Elapsed: ${_getElapsedTime()}',
+                //         style: TextStyle(
+                //           fontSize: 14,
+                //           fontWeight: FontWeight.w600,
+                //           color: efeedorBrandGreen,
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
+                // const SizedBox(height: 20),
 
                 // Info text
                 Text(
@@ -383,4 +382,3 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
     );
   }
 }
-

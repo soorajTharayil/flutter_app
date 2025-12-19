@@ -4,6 +4,7 @@ import 'package:devkitflutter/ui/reusable/reusable_widget.dart';
 import 'package:devkitflutter/ui/reusable/cache_image_network.dart';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({Key? key}) : super(key: key);
@@ -16,9 +17,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
   // initialize reusable widget
   final _reusableWidget = ReusableWidget();
 
+  String _mobileNumber = 'Loading...';
+
   @override
   void initState() {
     super.initState();
+    _loadMobileNumber();
+  }
+
+  Future<void> _loadMobileNumber() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _mobileNumber = prefs.getString('mobile') ?? 'Not available';
+    });
   }
 
   @override
@@ -55,13 +66,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Expanded(
-                      child: Text('Robert Steven', style: GlobalStyle.userProfileValue),
+                      child: Text('Robert Steven',
+                          style: GlobalStyle.userProfileValue),
                     ),
                     GestureDetector(
-                      onTap: (){
-                        Fluttertoast.showToast(msg: 'Click edit name', toastLength: Toast.LENGTH_SHORT);
+                      onTap: () {
+                        Fluttertoast.showToast(
+                            msg: 'Click edit name',
+                            toastLength: Toast.LENGTH_SHORT);
                       },
-                      child: const Text('Edit', style: GlobalStyle.userProfileEdit),
+                      child: const Text('Edit',
+                          style: GlobalStyle.userProfileEdit),
                     )
                   ],
                 ),
@@ -76,13 +91,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Expanded(
-                      child: Text('robert.steven@ijtechnology.net', style: GlobalStyle.userProfileValue),
+                      child: Text('robert.steven@ijtechnology.net',
+                          style: GlobalStyle.userProfileValue),
                     ),
                     GestureDetector(
-                      onTap: (){
-                        Fluttertoast.showToast(msg: 'Click edit email', toastLength: Toast.LENGTH_SHORT);
+                      onTap: () {
+                        Fluttertoast.showToast(
+                            msg: 'Click edit email',
+                            toastLength: Toast.LENGTH_SHORT);
                       },
-                      child: const Text('Edit', style: GlobalStyle.userProfileEdit),
+                      child: const Text('Edit',
+                          style: GlobalStyle.userProfileEdit),
                     )
                   ],
                 ),
@@ -94,26 +113,29 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Text('0811888999', style: GlobalStyle.userProfileValue),
+                    Expanded(
+                      child: Text(_mobileNumber,
+                          style: GlobalStyle.userProfileValue),
                     ),
                     GestureDetector(
-                      onTap: (){
-                        Fluttertoast.showToast(msg: 'Click edit phone number', toastLength: Toast.LENGTH_SHORT);
+                      onTap: () {
+                        Fluttertoast.showToast(
+                            msg: 'Click edit phone number',
+                            toastLength: Toast.LENGTH_SHORT);
                       },
-                      child: const Text('Edit', style: GlobalStyle.userProfileEdit),
+                      child: const Text('Edit',
+                          style: GlobalStyle.userProfileEdit),
                     )
                   ],
                 ),
               ],
             ),
           ),
-        )
-    );
+        ));
   }
 
-  Widget _createProfilePicture(){
-    final double profilePictureSize = MediaQuery.of(context).size.width/3;
+  Widget _createProfilePicture() {
+    final double profilePictureSize = MediaQuery.of(context).size.width / 3;
     return Align(
       alignment: Alignment.center,
       child: Container(
@@ -132,15 +154,18 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 child: Hero(
                   tag: 'profilePicture',
                   child: ClipOval(
-                      child: buildCacheNetworkImage(width: profilePictureSize, height: profilePictureSize, url: '$globalUrl/user/avatar.png')
-                  ),
+                      child: buildCacheNetworkImage(
+                          width: profilePictureSize,
+                          height: profilePictureSize,
+                          url: '$globalUrl/user/avatar.png')),
                 ),
               ),
               // create edit icon in the picture
               Container(
                 width: 30,
                 height: 30,
-                margin: EdgeInsets.only(top: 0, left: MediaQuery.of(context).size.width/4),
+                margin: EdgeInsets.only(
+                    top: 0, left: MediaQuery.of(context).size.width / 4),
                 child: Card(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(30),
@@ -162,23 +187,27 @@ class _UserProfilePageState extends State<UserProfilePage> {
         onPressed: () {
           Navigator.pop(context);
         },
-        child: const Text('No', style: TextStyle(color: softBlue))
-    );
+        child: const Text('No', style: TextStyle(color: softBlue)));
     Widget continueButton = TextButton(
         onPressed: () {
           Navigator.pop(context);
-          Fluttertoast.showToast(msg: 'Click edit profile picture', toastLength: Toast.LENGTH_SHORT);
+          Fluttertoast.showToast(
+              msg: 'Click edit profile picture',
+              toastLength: Toast.LENGTH_SHORT);
         },
-        child: const Text('Yes', style: TextStyle(color: softBlue))
-    );
+        child: const Text('Yes', style: TextStyle(color: softBlue)));
 
     // set up the AlertDialog
     AlertDialog alert = AlertDialog(
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(10),
       ),
-      title: const Text('Edit Profile Picture', style: TextStyle(fontSize: 18),),
-      content: const Text('Do you want to edit profile picture ?', style: TextStyle(fontSize: 13, color: black77)),
+      title: const Text(
+        'Edit Profile Picture',
+        style: TextStyle(fontSize: 18),
+      ),
+      content: const Text('Do you want to edit profile picture ?',
+          style: TextStyle(fontSize: 13, color: black77)),
       actions: [
         cancelButton,
         continueButton,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/op_localization_service.dart';
 
 class ThankYouScreen extends StatelessWidget {
   const ThankYouScreen({Key? key}) : super(key: key);
@@ -32,7 +33,9 @@ class ThankYouScreen extends StatelessWidget {
               ),
               const SizedBox(height: 30),
               ElevatedButton.icon(
-                onPressed: () {
+                onPressed: () async {
+                  // Reset language to English before going back to home
+                  await OPLocalizationService.resetToEnglish();
                   Navigator.popUntil(context, (route) => route.isFirst);
                 },
                 icon: const Icon(Icons.home),

@@ -195,7 +195,7 @@ class _IPDischargePatientInfoPageState
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              "IP Discharge Feedback Form",
+                              context.opTranslate('ip_discharge_feedback_form'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,
