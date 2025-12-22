@@ -112,7 +112,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
   Widget build(BuildContext context) {
     return AppHeaderWrapper(
       titleWidget: Text(
-        context.opTranslate('Patient Details'),
+        context.opTranslate(''),
         style: const TextStyle(
           fontSize: 16, // adjust to 14 or 15 if you want even smaller
           fontWeight: FontWeight.w600,
@@ -121,6 +121,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
       ),
       showLogo: false,
       showLanguageSelector: true,
+      showHomeButton: true,
       child: SafeArea(
         child: Column(
           children: [
@@ -151,7 +152,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              context.opTranslate('op_feedback_form'),
+                              context.opTranslate('patient_information'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,

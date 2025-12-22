@@ -7,6 +7,7 @@ class AppHeaderWrapper extends StatelessWidget {
   final Widget? titleWidget;
   final List<Widget>? actions;
   final bool showBackButton;
+  final bool showHomeButton;
   final PreferredSizeWidget? bottom;
   final Widget? bottomNavigationBar;
   final bool showLogo;
@@ -19,6 +20,7 @@ class AppHeaderWrapper extends StatelessWidget {
     this.titleWidget,
     this.actions,
     this.showBackButton = true,
+    this.showHomeButton = false,
     this.bottom,
     this.bottomNavigationBar,
     this.showLogo = false,
@@ -33,6 +35,7 @@ class AppHeaderWrapper extends StatelessWidget {
         titleWidget: titleWidget,
         actions: actions,
         showBackButton: showBackButton,
+        showHomeButton: showHomeButton,
         bottom: bottom,
         showLogo: showLogo,
         showLanguageSelector: showLanguageSelector,

@@ -18,17 +18,23 @@ class _UserProfilePageState extends State<UserProfilePage> {
   final _reusableWidget = ReusableWidget();
 
   String _mobileNumber = 'Loading...';
+  String _name = 'Loading...';
+  String _email = 'Loading...';
+  String _designation = 'Loading...';
 
   @override
   void initState() {
     super.initState();
-    _loadMobileNumber();
+    _loadUserData();
   }
 
-  Future<void> _loadMobileNumber() async {
+  Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     setState(() {
       _mobileNumber = prefs.getString('mobile') ?? 'Not available';
+      _name = prefs.getString('name') ?? 'Not available';
+      _email = prefs.getString('email') ?? 'Not available';
+      _designation = prefs.getString('designation') ?? 'Not available';
     });
   }
 
@@ -65,14 +71,38 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Text('Robert Steven',
-                          style: GlobalStyle.userProfileValue),
+                    Expanded(
+                      child: Text(_name, style: GlobalStyle.userProfileValue),
                     ),
                     GestureDetector(
                       onTap: () {
                         Fluttertoast.showToast(
                             msg: 'Click edit name',
+                            toastLength: Toast.LENGTH_SHORT);
+                      },
+                      child: const Text('Edit',
+                          style: GlobalStyle.userProfileEdit),
+                    )
+                  ],
+                ),
+                const SizedBox(
+                  height: 24,
+                ),
+                const Text('Designation', style: GlobalStyle.userProfileTitle),
+                const SizedBox(
+                  height: 8,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(_designation,
+                          style: GlobalStyle.userProfileValue),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Fluttertoast.showToast(
+                            msg: 'Click edit designation',
                             toastLength: Toast.LENGTH_SHORT);
                       },
                       child: const Text('Edit',
@@ -90,9 +120,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Expanded(
-                      child: Text('robert.steven@ijtechnology.net',
-                          style: GlobalStyle.userProfileValue),
+                    Expanded(
+                      child: Text(_email, style: GlobalStyle.userProfileValue),
                     ),
                     GestureDetector(
                       onTap: () {

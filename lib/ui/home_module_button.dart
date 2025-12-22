@@ -15,6 +15,7 @@ import 'package:devkitflutter/widgets/hospital_logo_widget.dart';
 import 'package:devkitflutter/services/department_service.dart' as dept_service;
 import 'package:devkitflutter/services/offline_storage_service.dart';
 import 'package:devkitflutter/services/feedback_preloader.dart';
+import 'package:devkitflutter/services/op_localization_service.dart';
 import 'package:devkitflutter/pages/offline_sync_page.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -340,6 +341,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  void _manageTickets() {
+    // TODO: Implement manage tickets functionality
+    Fluttertoast.showToast(msg: "Manage Tickets - Coming Soon");
+  }
+
+  void _userActivity() {
+    // TODO: Implement user activity functionality
+    Fluttertoast.showToast(msg: "User Activity - Coming Soon");
+  }
+
   void _openMenuBottomSheet() {
     final List<Map<String, dynamic>> menuItems = [
       {
@@ -373,6 +384,18 @@ class _HomePageState extends State<HomePage> {
         'title': 'Support',
         'color': Colors.teal,
         'action': () {},
+      },
+      {
+        'icon': Icons.person,
+        'title': 'Profile',
+        'color': Colors.purple,
+        'action': _openProfileDrawer,
+      },
+      {
+        'icon': Icons.history,
+        'title': 'User Activity',
+        'color': Colors.cyan,
+        'action': _userActivity,
       },
       {
         'icon': Icons.info,
@@ -439,40 +462,51 @@ class _HomePageState extends State<HomePage> {
                 const SizedBox(height: 16),
                 // Enhanced grid layout with animations and better icons
                 Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Column(
-                      children: [
-                        // Access Web Dashboard
-                        _buildMenuItem(menuItems[0], 0, isFullWidth: true),
-                        const SizedBox(height: 16),
-                        // Refresh Data next to Update App
-                        Row(
-                          children: [
-                            Expanded(child: _buildMenuItem(menuItems[1], 1)),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildMenuItem(menuItems[2], 2)),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        // Share App next to Support
-                        Row(
-                          children: [
-                            Expanded(child: _buildMenuItem(menuItems[3], 3)),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildMenuItem(menuItems[4], 4)),
-                          ],
-                        ),
-                        const SizedBox(height: 16),
-                        // About next to Logout
-                        Row(
-                          children: [
-                            Expanded(child: _buildMenuItem(menuItems[5], 5)),
-                            const SizedBox(width: 16),
-                            Expanded(child: _buildMenuItem(menuItems[6], 6)),
-                          ],
-                        ),
-                      ],
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Column(
+                        children: [
+                          // Access Web Dashboard
+                          _buildMenuItem(menuItems[0], 0, isFullWidth: true),
+                          const SizedBox(height: 16),
+                          // Refresh Data next to Update App
+                          Row(
+                            children: [
+                              Expanded(child: _buildMenuItem(menuItems[1], 1)),
+                              const SizedBox(width: 16),
+                              Expanded(child: _buildMenuItem(menuItems[2], 2)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Share App next to Support
+                          Row(
+                            children: [
+                              Expanded(child: _buildMenuItem(menuItems[3], 3)),
+                              const SizedBox(width: 16),
+                              Expanded(child: _buildMenuItem(menuItems[4], 4)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // Profile next to User Activity
+                          Row(
+                            children: [
+                              Expanded(child: _buildMenuItem(menuItems[5], 5)),
+                              const SizedBox(width: 16),
+                              Expanded(child: _buildMenuItem(menuItems[6], 6)),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          // About next to Logout
+                          Row(
+                            children: [
+                              Expanded(child: _buildMenuItem(menuItems[7], 7)),
+                              const SizedBox(width: 16),
+                              Expanded(child: _buildMenuItem(menuItems[8], 8)),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -499,9 +533,9 @@ class _HomePageState extends State<HomePage> {
     final prefs = await SharedPreferences.getInstance();
     final name = prefs.getString('name') ?? 'User Name';
     final email = prefs.getString('email') ?? 'user@example.com';
-    final address = prefs.getString('user_address') ?? 'No address provided';
-    final mobile =
-        prefs.getString('mobile') ?? 'No mobile number provided';
+    final mobile = prefs.getString('mobile') ?? 'No mobile number provided';
+    final designation =  prefs.getString('designation') ?? 'No designation provided';
+       
 
     showModalBottomSheet(
       context: context,
@@ -562,6 +596,16 @@ class _HomePageState extends State<HomePage> {
               Center(
                 child: Text(
                   mobile,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  designation,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.black,
@@ -731,11 +775,14 @@ class _HomePageState extends State<HomePage> {
         currentIndex: _selectedIndex,
         selectedItemColor: efeedorBrandGreen,
         unselectedItemColor: Colors.grey,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        elevation: 0, // Remove shadow effect
         onTap: (i) {
           if (i == 3) {
             _openMenuBottomSheet(); // BOTTOM SHEET MENU
           } else if (i == 2) {
-            _openProfileDrawer(); // PROFILE BOTTOM SHEET
+            _manageTickets(); // MANAGE TICKETS
           } else if (i == 1) {
             _accessWebDashboard(); // DASHBOARD
           } else {
@@ -746,7 +793,8 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
           BottomNavigationBarItem(
               icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.confirmation_number), label: 'Manage Tickets'),
           BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu'),
         ],
       ),
@@ -894,6 +942,15 @@ class _HomePageState extends State<HomePage> {
                                         fontSize: 16,
                                         fontWeight: FontWeight.w800,
                                         color: Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      module['desc'],
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[600],
+                                        height: 1.3,
                                       ),
                                     ),
                                   ],

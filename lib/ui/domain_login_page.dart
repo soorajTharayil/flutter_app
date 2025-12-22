@@ -8,7 +8,10 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class DomainLoginPage extends StatefulWidget {
-  const DomainLoginPage({Key? key}) : super(key: key);
+  const DomainLoginPage({Key? key, this.isChangingDomain = false})
+      : super(key: key);
+
+  final bool isChangingDomain;
 
   @override
   _DomainLoginPageState createState() => _DomainLoginPageState();
@@ -26,16 +29,27 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
   }
 
   Future<void> _checkDeviceApproval() async {
+    // Skip device approval check if user is changing domain
+    if (widget.isChangingDomain) {
+      if (mounted) {
+        setState(() {
+          _checkingApproval = false;
+        });
+      }
+      return;
+    }
+
     try {
       final prefs = await SharedPreferences.getInstance();
       final domain = prefs.getString('domain') ?? '';
-      
+
       if (domain.isNotEmpty) {
         // Domain exists - check if device is approved
         final deviceInfo = await DeviceService.getDeviceInfo();
         final deviceId = deviceInfo['device_id']!;
-        final isApproved = await DeviceService.isDeviceApproved(deviceId, domain);
-        
+        final isApproved =
+            await DeviceService.isDeviceApproved(deviceId, domain);
+
         if (isApproved && mounted) {
           // Device approved - skip domain page, go directly to login
           Navigator.pushReplacement(
@@ -95,7 +109,7 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                       Image.asset(
+                      Image.asset(
                         'assets/images/efeedor_square_logo.png',
                         height: 48,
                         color: Colors.white,
@@ -302,11 +316,11 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
         _loading = true;
       });
     }
-    
+
     try {
       // Trim leading and trailing spaces
       final String trimmedInput = domainController.text.trim();
-      
+
       // Check if input is empty after trimming
       if (trimmedInput.isEmpty) {
         if (mounted) {
@@ -317,7 +331,7 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
         _showAlert('Please enter your domain.');
         return;
       }
-      
+
       // Check for any spaces (leading, trailing, or middle)
       if (trimmedInput.contains(' ')) {
         if (mounted) {
@@ -325,13 +339,14 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
             _loading = false;
           });
         }
-        _showAlert('Domain cannot contain spaces. Please enter a valid domain name.');
+        _showAlert(
+            'Domain cannot contain spaces. Please enter a valid domain name.');
         return;
       }
-      
+
       // Convert to lowercase for validation
       final String input = trimmedInput.toLowerCase();
-      
+
       final response = await http.get(Uri.parse(domainValidationApi));
       if (response.statusCode != 200) {
         _showAlert('Unable to validate domain. Please try again.');
@@ -373,7 +388,7 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('domain', input);
         await prefs.setBool('domain_completed', true);
-        
+
         // Navigate to login page (no device registration at this stage)
         if (!mounted) return;
         Navigator.pushReplacement(

@@ -48,10 +48,10 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
   Future<void> _navigateToNextPage() async {
     if (_formKey.currentState!.validate()) {
       final mobileNumber = _mobileController.text;
-      
+
       // Check if cached IP data exists (from dashboard preload)
       final hasCachedData = await IPDataLoader.hasCachedIpData();
-      
+
       if (!hasCachedData) {
         // No cached data available - show error message
         if (mounted) {
@@ -72,9 +72,12 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
       try {
         final domain = await getDomainFromPrefs();
         if (domain.isNotEmpty) {
-          final response = await http.get(
-            Uri.parse('https://$domain.efeedor.com/api/mobile_inpatient.php?mobile=$mobileNumber'),
-          ).timeout(
+          final response = await http
+              .get(
+            Uri.parse(
+                'https://$domain.efeedor.com/api/mobile_inpatient.php?mobile=$mobileNumber'),
+          )
+              .timeout(
             const Duration(seconds: 15),
             onTimeout: () {
               throw Exception('Request timeout. Please check your connection.');
@@ -131,8 +134,8 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
   @override
   Widget build(BuildContext context) {
     return AppHeaderWrapper(
-       titleWidget: Text(
-        context.opTranslate('Patient Details'),
+      titleWidget: Text(
+        context.opTranslate(''),
         style: const TextStyle(
           fontSize: 16, // adjust to 14 or 15 if you want even smaller
           fontWeight: FontWeight.w600,
@@ -141,6 +144,7 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
       ),
       showLogo: false,
       showLanguageSelector: true,
+      showHomeButton: true,
       child: SafeArea(
         child: Column(
           children: [
@@ -175,7 +179,7 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
                             style: const TextStyle(
                               fontSize: 20,
                               fontWeight: FontWeight.w800,
-                               color: Colors.teal, // Teal-green
+                              color: Colors.teal, // Teal-green
                             ),
                           ),
                           const SizedBox(height: 12),
@@ -269,7 +273,8 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
                         });
                         _navigateToNextPage();
                       },
-                      icon: const Icon(Icons.arrow_forward, color: Colors.white),
+                      icon:
+                          const Icon(Icons.arrow_forward, color: Colors.white),
                       label: Text(
                         context.opTranslate('next'),
                         style: const TextStyle(
@@ -319,4 +324,3 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
     );
   }
 }
-

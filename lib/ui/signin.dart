@@ -184,6 +184,7 @@ class _SignInState extends State<SignIn> {
         final email = responseData['email']?.toString() ?? '';
         final name = responseData['name']?.toString() ?? email;
         final mobile = responseData['mobile']?.toString() ?? '';
+        final designation = responseData['designation']?.toString() ?? '';
 
         // Save user data
         final permissions = <String, dynamic>{};
@@ -192,7 +193,8 @@ class _SignInState extends State<SignIn> {
               key != 'userid' &&
               key != 'email' &&
               key != 'name' &&
-              key != 'mobile') {
+              key != 'mobile' &&
+              key != 'designation') {
             permissions[key] = value;
           }
         });
@@ -201,6 +203,7 @@ class _SignInState extends State<SignIn> {
         await prefs.setString('email', email);
         await prefs.setString('name', name);
         await prefs.setString('mobile', mobile);
+        await prefs.setString('designation', designation);
 
         // Step 2: Check if device is already approved (one-time approval)
         final deviceInfo = await DeviceService.getDeviceInfo();
@@ -385,7 +388,8 @@ class _SignInState extends State<SignIn> {
                                           context,
                                           MaterialPageRoute(
                                             builder: (context) =>
-                                                DomainLoginPage(),
+                                                const DomainLoginPage(
+                                                    isChangingDomain: true),
                                           ),
                                         );
                                       },

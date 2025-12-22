@@ -3,12 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:devkitflutter/services/hospital_logo_service.dart';
 import 'package:devkitflutter/widgets/language_selector_button.dart';
 import 'package:devkitflutter/config/constant.dart';
+import 'package:devkitflutter/ui/home_module_button.dart';
+import 'package:devkitflutter/services/op_localization_service.dart';
 
 class AppHeaderBar extends StatefulWidget implements PreferredSizeWidget {
   final String? title;
   final Widget? titleWidget;
   final List<Widget>? actions;
   final bool showBackButton;
+  final bool showHomeButton;
   final PreferredSizeWidget? bottom;
   final bool showLogo;
   final bool showLanguageSelector;
@@ -19,6 +22,7 @@ class AppHeaderBar extends StatefulWidget implements PreferredSizeWidget {
     this.titleWidget,
     this.actions,
     this.showBackButton = true,
+    this.showHomeButton = false,
     this.bottom,
     this.showLogo = false,
     this.showLanguageSelector = false,
@@ -190,12 +194,30 @@ class _AppHeaderBarState extends State<AppHeaderBar> {
     return AppBar(
       backgroundColor: efeedorBrandGreen,
       elevation: 0,
-      leading: widget.showBackButton
+      leading: widget.showHomeButton
           ? IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white, size: 24),
-              onPressed: () => Navigator.of(context).pop(),
+              icon: const Icon(Icons.home, color: Colors.white, size: 24),
+              onPressed: () async {
+                // Reset OP language to English when going home
+                await OPLocalizationService.resetToEnglish();
+                // Navigate to home_module_button.dart
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (context) => const HomePage()),
+                  (route) => false,
+                );
+              },
             )
-          : null,
+          : widget.showBackButton
+              ? IconButton(
+                  icon: const Icon(Icons.arrow_back,
+                      color: Colors.white, size: 24),
+                  onPressed: () async {
+                    // Reset OP language to English when going back
+                    await OPLocalizationService.resetToEnglish();
+                    Navigator.of(context).pop();
+                  },
+                )
+              : null,
       title: Row(
         children: [
           if (widget.showLogo) ...[

@@ -153,7 +153,7 @@ class _IPDischargePatientInfoPageState
   Widget build(BuildContext context) {
     return AppHeaderWrapper(
       titleWidget: Text(
-        context.opTranslate('Patient Details'),
+        context.opTranslate(''),
         style: const TextStyle(
           fontSize: 16, // adjust to 14 or 15 if you want even smaller
           fontWeight: FontWeight.w600,
@@ -162,6 +162,7 @@ class _IPDischargePatientInfoPageState
       ),
       showLogo: false,
       showLanguageSelector: true,
+      showHomeButton: true,
       child: SafeArea(
         child: Column(
           children: [
@@ -195,7 +196,7 @@ class _IPDischargePatientInfoPageState
                           Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              context.opTranslate('ip_discharge_feedback_form'),
+                              context.opTranslate('patient_information'),
                               style: TextStyle(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w700,

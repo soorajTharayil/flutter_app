@@ -16,33 +16,33 @@ class OnBoardingPage extends StatefulWidget {
 class _OnBoardingPageState extends State<OnBoardingPage> {
   final pages = [
     SkOnboardingModel(
-      title: 'Share Your Feedback',
+      title: 'Welcome to Efeedor',
       description:
-          'Tell us about your experience with our healthcare services. Your voice matters.',
+          'Digitizing healthcare experience and quality.',
       titleColor: efeedorBrandGreen,
       descripColor: const Color(0xFF666666),
       imageAssetPath: 'assets/images/onboarding_images1.png',
     ),
     SkOnboardingModel(
-      title: 'Rate Our Care',
+      title: 'Access Your Hospital',
       description:
-          'Help us improve by rating the quality of treatment and services. Every rating counts.',
+          'Enter your hospital domain and request access.',
       titleColor: efeedorBrandGreen,
       descripColor: const Color(0xFF666666),
       imageAssetPath: 'assets/images/onboarding_images2.png',
     ),
     SkOnboardingModel(
-      title: 'Ensure Quality',
+      title: 'Secure Login',
       description:
-          'Your feedback drives better care and healthcare management. Together we excel.',
+          'Sign in with your username and password to begin recording and managing data.',
       titleColor: efeedorBrandGreen,
       descripColor: const Color(0xFF666666),
       imageAssetPath: 'assets/images/onboarding_images3.png',
     ),
     SkOnboardingModel(
-      title: 'Thank You!',
+      title: 'Collect. Analyze. Improve.',
       description:
-          'Thank you for helping us deliver exceptional healthcare services. Let\'s get started!',
+          'Capture data, track performance, and drive improvement.',
       titleColor: efeedorBrandGreen,
       descripColor: const Color(0xFF666666),
       imageAssetPath: 'assets/images/onboarding_images4.png',

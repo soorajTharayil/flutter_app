@@ -18,7 +18,7 @@ class ThankYouScreen extends StatelessWidget {
                   size: 80, color: Colors.green.shade700),
               const SizedBox(height: 20),
               const Text(
-                'Thank You!',
+                'Thank you for taking time out to provide the feedback.',
                 style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.bold,
@@ -41,7 +41,7 @@ class ThankYouScreen extends StatelessWidget {
                 icon: const Icon(Icons.home),
                 label: const Text('Back to Home'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue,
+                    backgroundColor: Colors.teal,
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(

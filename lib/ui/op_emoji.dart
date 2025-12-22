@@ -277,9 +277,11 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   @override
   Widget build(BuildContext context) {
     return AppHeaderWrapper(
-      title: "Feedback Form",
+      title: "",
       showLogo: false,
       showLanguageSelector: true,
+      showHomeButton: true,
+      showBackButton: false,
       child: Column(
         children: [
           Expanded(
@@ -292,11 +294,28 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   )
                 : ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
-                    itemCount:
-                        _questionSets.length + 1, // +1 for welcome message
+                    itemCount: _questionSets.length +
+                        2, // +2 for heading and welcome message
                     itemBuilder: (context, i) {
-                      // Added Welcome Message Block (DO NOT MODIFY ANY OTHER LOGIC)
+                      // Page Heading
                       if (i == 0) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 20),
+                          child: Align(
+                            alignment: Alignment.center,
+                            child: Text(
+                              context.opTranslate('op_feedback_form'),
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.teal, // Teal-green
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      // Added Welcome Message Block (DO NOT MODIFY ANY OTHER LOGIC)
+                      if (i == 1) {
                         final patientName = widget.feedbackData.name.isNotEmpty
                             ? widget.feedbackData.name
                             : 'Guest';
@@ -597,7 +616,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                                     decoration: InputDecoration(
                                                       hintText: hasOtherSelected
                                                           ? 'Comment required *'
-                                                          : 'Optional Comment',
+                                                          : 'Please describe',
                                                       hintStyle: TextStyle(
                                                         color: hasOtherSelected
                                                             ? Colors
@@ -692,18 +711,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                     },
                   ),
           ),
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
             child: Row(
               children: [
                 Expanded(

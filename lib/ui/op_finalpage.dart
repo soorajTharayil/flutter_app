@@ -289,9 +289,11 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
     final feedbackData = widget.feedbackData;
 
     return AppHeaderWrapper(
-      title: context.opTranslate('feedback'),
+      title: context.opTranslate(''),
       showLogo: false,
       showLanguageSelector: true,
+      showHomeButton: true,
+      showBackButton: false,
       child: Column(
         children: [
           Expanded(
@@ -439,22 +441,22 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
 
                             const SizedBox(height: 16),
 
-                            if (rating != null)
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: efeedorBrandGreen.withOpacity(0.1),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Text(
-                                  '${context.opTranslate('selected_rating')}: $rating',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: efeedorBrandGreen,
-                                  ),
-                                ),
-                              ),
+                            // if (rating != null)
+                            //   Container(
+                            //     padding: const EdgeInsets.all(12),
+                            //     decoration: BoxDecoration(
+                            //       color: efeedorBrandGreen.withOpacity(0.1),
+                            //       borderRadius: BorderRadius.circular(12),
+                            //     ),
+                            //     child: Text(
+                            //       '${context.opTranslate('selected_rating')}: $rating',
+                            //       style: TextStyle(
+                            //         fontSize: 15,
+                            //         fontWeight: FontWeight.w600,
+                            //         color: efeedorBrandGreen,
+                            //       ),
+                            //     ),
+                            //   ),
 
                             AnimatedSize(
                               duration: const Duration(milliseconds: 200),
@@ -605,15 +607,15 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Text(
-                              context.opTranslate(
-                                  'describe_reasons_or_suggestions'),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                color: Colors.black87,
-                                height: 1.4,
-                              ),
-                            ),
+                            // Text(
+                            //   context.opTranslate(
+                            //       'describe_reasons_or_suggestions'),
+                            //   style: const TextStyle(
+                            //     fontSize: 14,
+                            //     color: Colors.black87,
+                            //     height: 1.4,
+                            //   ),
+                            // ),
                             const SizedBox(height: 16),
                             TextField(
                               controller: suggestionController,
@@ -660,18 +662,9 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
           ),
 
           // Bottom Buttons
-          Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -2),
-                ),
-              ],
-            ),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+                16, 16, 16, 16 + MediaQuery.of(context).padding.bottom),
             child: Row(
               children: [
                 Expanded(
