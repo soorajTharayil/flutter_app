@@ -271,6 +271,9 @@ class _HomePageState extends State<HomePage> {
     await prefs.remove('name');
     await prefs.remove('user_permissions');
     await prefs.remove('waiting_for_approval');
+    await prefs.remove('password'); // Clear password for security
+    await prefs.setBool(
+        'web_session_invalidated', true); // Flag to invalidate web session
     // DO NOT clear domain-related keys: domain, stored_domain, domain_completed, domain_url
     // Do NOT clear device approval from backend
 
@@ -537,8 +540,6 @@ class _HomePageState extends State<HomePage> {
     final name = prefs.getString('name') ?? 'User Name';
     final email = prefs.getString('email') ?? 'user@example.com';
     final mobile = prefs.getString('mobile') ?? 'No mobile number provided';
-    final designation =
-        prefs.getString('designation') ?? 'No designation provided';
 
     showModalBottomSheet(
       context: context,
@@ -599,16 +600,6 @@ class _HomePageState extends State<HomePage> {
               Center(
                 child: Text(
                   mobile,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(
-                  designation,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.black,

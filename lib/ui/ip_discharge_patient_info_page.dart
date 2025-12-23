@@ -511,6 +511,11 @@ class _IPDischargePatientInfoPageState
                         ).copyWith(
                           prefixIcon: const Icon(Icons.bed),
                         ),
+                        keyboardType: TextInputType.number,
+                        maxLength: 4,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly
+                        ],
                         validator: (value) =>
                             (value == null || value.trim().isEmpty)
                                 ? context.opTranslate('room_bed_required')

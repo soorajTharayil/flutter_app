@@ -158,7 +158,6 @@ class LoginController extends CI_Controller
                     'message' => 'Failed to create device request'
                 ));
             }
-
         } catch (Exception $e) {
             $this->output->set_status_header(500);
             echo json_encode(array(
@@ -180,38 +179,26 @@ class LoginController extends CI_Controller
      */
     private function validate_login($email, $password)
     {
-        // TODO: Replace this with your actual user authentication logic
-        // Example implementation:
-        
         // Query user by email
         $this->db->where('email', $email);
-        // OR if you use userid field:
-        // $this->db->where('userid', $email);
         $user = $this->db->get('users')->row_array();
-        
+
         if (!$user) {
             return false;
         }
-        
-        // Verify password (adjust based on your password hashing method)
-        // If using password_hash():
-        // if (!password_verify($password, $user['password'])) {
-        //     return false;
-        // }
-        
-        // If using MD5 (not recommended, but if that's what you have):
-        // if (md5($password) !== $user['password']) {
-        //     return false;
-        // }
-        
-        // For now, return a placeholder structure
-        // Replace this with actual user data from your database
+
+        // Verify password (using MD5 for now - update to password_hash if possible)
+        if (md5($password) !== $user['password']) {
+            return false;
+        }
+
+        // Return actual user data from database
         return array(
-            'userid' => $user['id'] ?? $user['userid'] ?? '1',
-            'email' => $user['email'] ?? $email,
-            'name' => $user['name'] ?? $user['username'] ?? 'User',
-            // Add other user fields as needed
+            'userid' => $user['userid'],
+            'email' => $user['email'],
+            'name' => $user['name'],
+            'designation' => $user['designation'] ?? '',
+            'mobile' => $user['mobile'] ?? '',
         );
     }
 }
-

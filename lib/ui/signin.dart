@@ -204,6 +204,8 @@ class _SignInState extends State<SignIn> {
         await prefs.setString('name', name);
         await prefs.setString('mobile', mobile);
         await prefs.setString('designation', designation);
+        await prefs.setString('password',
+            _passwordController.text); // Save password for auto-fill
 
         // Step 2: Check if device is already approved (one-time approval)
         final deviceInfo = await DeviceService.getDeviceInfo();
