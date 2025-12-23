@@ -59,7 +59,8 @@ class SKOnboardingScreenState extends State<SKOnboardingScreen> {
       height: 6.0,
       width: isActive ? 32.0 : 6.0,
       decoration: BoxDecoration(
-        color: isActive ? widget.themeColor : widget.themeColor.withOpacity(0.3),
+        color:
+            isActive ? widget.themeColor : widget.themeColor.withOpacity(0.3),
         borderRadius: const BorderRadius.all(Radius.circular(3)),
       ),
     );
@@ -77,7 +78,8 @@ class SKOnboardingScreenState extends State<SKOnboardingScreen> {
               children: <Widget>[
                 // Modern Skip Button - Fixed height
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 8.0),
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: TextButton(
@@ -85,10 +87,13 @@ class SKOnboardingScreenState extends State<SKOnboardingScreen> {
                         widget.skipClicked("Skip Tapped");
                       },
                       style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 10.0),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 20.0, vertical: 10.0),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(20.0),
-                          side: BorderSide(color: widget.themeColor.withOpacity(0.3), width: 1.5),
+                          side: BorderSide(
+                              color: widget.themeColor.withOpacity(0.3),
+                              width: 1.5),
                         ),
                       ),
                       child: Text(
@@ -124,54 +129,57 @@ class SKOnboardingScreenState extends State<SKOnboardingScreen> {
                     children: _buildPageIndicator(),
                   ),
                 ),
-                // Next Button - Fixed height
-                if (_currentPage != widget.pages.length - 1)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 56.0,
-                      child: ElevatedButton(
-                        onPressed: () {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.easeInOut,
-                          );
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: widget.themeColor,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(28.0),
-                          ),
+                // Next/Get Started Button - Fixed height
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20.0, vertical: 8.0),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56.0,
+                    child: ElevatedButton(
+                      onPressed: _currentPage == widget.pages.length - 1
+                          ? _getStartedTapped
+                          : () {
+                              _pageController.nextPage(
+                                duration: const Duration(milliseconds: 500),
+                                curve: Curves.easeInOut,
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: widget.themeColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(28.0),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Next',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            _currentPage == widget.pages.length - 1
+                                ? 'Get Started'
+                                : 'Next',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
                             ),
+                          ),
+                          if (_currentPage != widget.pages.length - 1)
                             const SizedBox(width: 8),
+                          if (_currentPage != widget.pages.length - 1)
                             Icon(Icons.arrow_forward, size: 20),
-                          ],
-                        ),
+                        ],
                       ),
                     ),
                   ),
+                ),
               ],
             );
           },
         ),
       ),
-      bottomSheet: _currentPage == widget.pages.length - 1
-          ? _showGetStartedButton()
-          : null,
     );
   }
 
@@ -180,12 +188,12 @@ class SKOnboardingScreenState extends State<SKOnboardingScreen> {
       builder: (context, constraints) {
         final availableHeight = constraints.maxHeight;
         final availableWidth = constraints.maxWidth;
-        
+
         // Calculate responsive sizes
         final imageSize = (availableWidth * 0.6).clamp(200.0, 350.0);
         final horizontalPadding = (availableWidth * 0.08).clamp(16.0, 32.0);
         final verticalPadding = (availableHeight * 0.02).clamp(8.0, 20.0);
-        
+
         return Padding(
           padding: EdgeInsets.symmetric(
             horizontal: horizontalPadding,
@@ -254,21 +262,19 @@ class SKOnboardingScreenState extends State<SKOnboardingScreen> {
               Flexible(
                 flex: 3,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: horizontalPadding * 0.5),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      page.description,
-                      textAlign: TextAlign.center,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        fontWeight: FontWeight.w400,
-                        color: page.descripColor,
-                        fontSize: 16,
-                        height: 1.5,
-                        letterSpacing: 0.2,
-                      ),
+                  padding:
+                      EdgeInsets.symmetric(horizontal: horizontalPadding * 0.5),
+                  child: Text(
+                    page.description,
+                    textAlign: TextAlign.center,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w400,
+                      color: page.descripColor,
+                      fontSize: 26,
+                      height: 1.5,
+                      letterSpacing: 0.2,
                     ),
                   ),
                 ),
@@ -282,7 +288,8 @@ class SKOnboardingScreenState extends State<SKOnboardingScreen> {
 
   Widget _showGetStartedButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 20.0, right: 20.0, top: 5.0, bottom: 30.0),
+      padding: const EdgeInsets.only(
+          left: 20.0, right: 20.0, top: 5.0, bottom: 30.0),
       child: SizedBox(
         width: double.infinity,
         height: 56.0,

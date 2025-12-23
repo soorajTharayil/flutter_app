@@ -374,7 +374,7 @@ class _SignInState extends State<SignIn> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        'You are logged in with $_domain.efeedor.com',
+                                        'You are entering $_domain.efeedor.com',
                                         style: const TextStyle(
                                           fontSize: 14,
                                           color: Colors.black87,
@@ -422,7 +422,7 @@ class _SignInState extends State<SignIn> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Access your Efeedor account',
+                              'to Access your hospital dashboard',
                               style: TextStyle(
                                   color: Colors.grey[700], fontSize: 13),
                             ),

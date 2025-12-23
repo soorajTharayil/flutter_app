@@ -534,8 +534,8 @@ class _HomePageState extends State<HomePage> {
     final name = prefs.getString('name') ?? 'User Name';
     final email = prefs.getString('email') ?? 'user@example.com';
     final mobile = prefs.getString('mobile') ?? 'No mobile number provided';
-    final designation =  prefs.getString('designation') ?? 'No designation provided';
-       
+    final designation =
+        prefs.getString('designation') ?? 'No designation provided';
 
     showModalBottomSheet(
       context: context,
@@ -794,7 +794,7 @@ class _HomePageState extends State<HomePage> {
           BottomNavigationBarItem(
               icon: Icon(Icons.dashboard), label: 'Dashboard'),
           BottomNavigationBarItem(
-              icon: Icon(Icons.confirmation_number), label: 'Manage Tickets'),
+              icon: Icon(Icons.confirmation_number), label: 'Tickets'),
           BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu'),
         ],
       ),
@@ -948,7 +948,7 @@ class _HomePageState extends State<HomePage> {
                                     Text(
                                       module['desc'],
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: 14,
                                         color: Colors.grey[600],
                                         height: 1.3,
                                       ),

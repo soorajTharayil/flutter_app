@@ -306,10 +306,10 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
 
                 // Message
                 Text(
-                  'Login successful.\nWaiting for admin approval...',
+                  'Your request to access this application has been submitted and is awaiting admin approval.',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 18,
                     color: black77,
                     height: 1.5,
                   ),
@@ -370,7 +370,7 @@ class _WaitingApprovalPageState extends State<WaitingApprovalPage> {
                     'Cancel',
                     style: TextStyle(
                       color: efeedorBrandGreen,
-                      fontSize: 14,
+                      fontSize: 16,
                     ),
                   ),
                 ),

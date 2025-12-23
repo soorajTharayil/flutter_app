@@ -34,7 +34,7 @@ class _OnBoardingPageState extends State<OnBoardingPage> {
     SkOnboardingModel(
       title: 'Secure Login',
       description:
-          'Sign in with your username and password to begin recording and managing data.',
+          'username and password recording and managing data.',
       titleColor: efeedorBrandGreen,
       descripColor: const Color(0xFF666666),
       imageAssetPath: 'assets/images/onboarding_images3.png',

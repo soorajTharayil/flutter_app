@@ -47,7 +47,7 @@
   "enter_suggestions": "Enter your suggestions here",
   "please_select_nps_rating": "Please select your NPS rating.",
   "comment_required": "Comment Required",
-  "please_tell_us_why_rating_dialog": "Please tell us why you selected this rating.",
+  "please_tell_us_why_rating_dialog": "Please describe reasons for low rating",
   "ok": "OK",
   "domain_not_found": "Domain not found. Please enter domain first.",
   "feedback_stored_offline": "Feedback stored offline and will sync later",

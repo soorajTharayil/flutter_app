@@ -300,7 +300,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       // Page Heading
                       if (i == 0) {
                         return Padding(
-                          padding: const EdgeInsets.only(bottom: 20),
+                          padding: const EdgeInsets.only(bottom: 16),
                           child: Align(
                             alignment: Alignment.center,
                             child: Text(
@@ -320,9 +320,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             ? widget.feedbackData.name
                             : 'Guest';
                         return Container(
-                          margin: const EdgeInsets.only(bottom: 24),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                          margin: const EdgeInsets.only(bottom: 16),
+                          padding: const EdgeInsets.only(
+                              left: 16, right: 16, top: 0, bottom: 0),
                           decoration: BoxDecoration(
                             color: const Color(0xFFF9F9F9),
                             borderRadius: BorderRadius.circular(12),
@@ -339,7 +339,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                   height: 1.5,
                                 ),
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 6),
                               Text(
                                 context.opTranslate('thank_you_message'),
                                 style: const TextStyle(
@@ -354,17 +354,17 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         );
                       }
 
-                      // Original question set items (index adjusted for welcome message)
-                      final set = _questionSets[i - 1];
+                      // Original question set items (index adjusted for heading and welcome message)
+                      final set = _questionSets[i - 2];
                       return Padding(
-                        padding: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.only(bottom: 16),
                         child: Card(
                           elevation: 4,
                           shadowColor: Colors.black.withOpacity(0.08),
                           shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(20)),
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
+                            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [

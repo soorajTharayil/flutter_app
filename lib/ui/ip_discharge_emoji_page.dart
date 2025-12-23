@@ -346,14 +346,14 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                           ),
                         )
                       : ListView.builder(
-                          padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                           itemCount: _questionSets.length +
                               2, // +2 for heading and welcome message
                           itemBuilder: (context, i) {
                             // Page Heading
                             if (i == 0) {
                               return Padding(
-                                padding: const EdgeInsets.only(bottom: 20),
+                                padding: const EdgeInsets.only(bottom: 16),
                                 child: Align(
                                   alignment: Alignment.center,
                                   child: Text(
@@ -375,9 +375,9 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                                       ? widget.feedbackData.name
                                       : 'Guest';
                               return Container(
-                                margin: const EdgeInsets.only(bottom: 24),
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 16, vertical: 12),
+                                margin: const EdgeInsets.only(bottom: 0),
+                                padding: const EdgeInsets.only(
+                                    left: 16, right: 16, top: 12, bottom: 16),
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFF9F9F9),
                                   borderRadius: BorderRadius.circular(12),
@@ -394,7 +394,7 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                                         height: 1.5,
                                       ),
                                     ),
-                                    const SizedBox(height: 8),
+                                    const SizedBox(height: 6),
                                     Text(
                                       context.opTranslate('thank_you_message'),
                                       style: const TextStyle(
@@ -409,8 +409,8 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                               );
                             }
 
-                            // Original question set items (index adjusted for welcome message)
-                            final set = _questionSets[i - 1];
+                            // Original question set items (index adjusted for heading and welcome message)
+                            final set = _questionSets[i - 2];
                             return Padding(
                               padding: const EdgeInsets.only(bottom: 20),
                               child: Card(

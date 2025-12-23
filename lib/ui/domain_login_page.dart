@@ -166,7 +166,7 @@ class _DomainLoginPageState extends State<DomainLoginPage> {
                               FilteringTextInputFormatter.deny(RegExp(r'\s')),
                             ],
                             decoration: InputDecoration(
-                              hintText: 'eg : kademo',
+                              hintText: 'eg : abchospital',
                               hintStyle: TextStyle(
                                 color: Colors.black.withOpacity(0.5),
                                 fontSize: 16,
