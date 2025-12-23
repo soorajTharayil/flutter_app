@@ -88,31 +88,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 const SizedBox(
                   height: 24,
                 ),
-                const Text('Designation', style: GlobalStyle.userProfileTitle),
-                const SizedBox(
-                  height: 8,
-                ),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Text(_designation,
-                          style: GlobalStyle.userProfileValue),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Fluttertoast.showToast(
-                            msg: 'Click edit designation',
-                            toastLength: Toast.LENGTH_SHORT);
-                      },
-                      child: const Text('Edit',
-                          style: GlobalStyle.userProfileEdit),
-                    )
-                  ],
-                ),
-                const SizedBox(
-                  height: 24,
-                ),
                 const Text('Email', style: GlobalStyle.userProfileTitle),
                 const SizedBox(
                   height: 8,
@@ -150,6 +125,31 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       onTap: () {
                         Fluttertoast.showToast(
                             msg: 'Click edit phone number',
+                            toastLength: Toast.LENGTH_SHORT);
+                      },
+                      child: const Text('Edit',
+                          style: GlobalStyle.userProfileEdit),
+                    )
+                  ],
+                ),
+                const SizedBox(
+                  height: 24,
+                ),
+                const Text('Designation', style: GlobalStyle.userProfileTitle),
+                const SizedBox(
+                  height: 8,
+                ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(_designation,
+                          style: GlobalStyle.userProfileValue),
+                    ),
+                    GestureDetector(
+                      onTap: () {
+                        Fluttertoast.showToast(
+                            msg: 'Click edit designation',
                             toastLength: Toast.LENGTH_SHORT);
                       },
                       child: const Text('Edit',

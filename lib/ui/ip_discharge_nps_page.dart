@@ -68,6 +68,34 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
     }
   }
 
+  /// Check if ticket was created from API response
+  bool _checkTicketCreated(Map<String, dynamic> responseData) {
+    // Check various possible fields that indicate ticket creation
+    if (responseData['ticketId'] != null && responseData['ticketId'].toString().isNotEmpty) {
+      return true;
+    }
+    if (responseData['ticket_id'] != null && responseData['ticket_id'].toString().isNotEmpty) {
+      return true;
+    }
+    if (responseData['ticketID'] != null && responseData['ticketID'].toString().isNotEmpty) {
+      return true;
+    }
+    if (responseData['ticketStatus'] != null && responseData['ticketStatus'].toString().isNotEmpty) {
+      return true;
+    }
+    if (responseData['ticketCreated'] == true || responseData['ticketCreated'] == 'true') {
+      return true;
+    }
+    if (responseData['hasTicket'] == true || responseData['hasTicket'] == 'true') {
+      return true;
+    }
+    if (responseData['status'] != null && 
+        responseData['status'].toString().toUpperCase() == 'OPEN') {
+      return true;
+    }
+    return false;
+  }
+
   /// Returns the color for an NPS button based on its value
   /// 0-6: Red, 7-8: Orange, 9-10: Green
   Color getNpsColor(int index, int selected) {
@@ -287,6 +315,12 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
     };
 
     return payload;
+  }
+
+  /// Check if feedback is unhappy (any rating is Poor=2 or Worst=1)
+  bool _isUnhappyFeedback(IPFeedbackData feedbackData) {
+    // Check if any rating value is 1 (Worst) or 2 (Poor)
+    return feedbackData.feedbackValues.values.any((rating) => rating == 1 || rating == 2);
   }
 
   @override
@@ -878,11 +912,13 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                                   );
 
                                   // Navigate to thank you page even when offline
+                                  // Check if feedback is unhappy based on ratings
+                                  final isUnhappy = _isUnhappyFeedback(feedbackData);
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                         builder: (context) =>
-                                            const ThankYouScreen()),
+                                            ThankYouScreen(isUnhappyFeedback: isUnhappy)),
                                   );
                                 }
                               } catch (e) {
@@ -933,11 +969,13 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
 
                               final responseData = jsonDecode(response.body);
                               if (responseData['status'] == 'success') {
+                                // Check if feedback is unhappy based on ratings (Poor=2 or Worst=1)
+                                final isUnhappy = _isUnhappyFeedback(feedbackData);
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) =>
-                                          const ThankYouScreen()),
+                                          ThankYouScreen(isUnhappyFeedback: isUnhappy)),
                                 );
                               } else {
                                 setState(() {
@@ -973,11 +1011,13 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
                                       duration: const Duration(seconds: 3),
                                     ),
                                   );
+                                  // Check if feedback is unhappy based on ratings
+                                  final isUnhappy = _isUnhappyFeedback(feedbackData);
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                         builder: (context) =>
-                                            const ThankYouScreen()),
+                                            ThankYouScreen(isUnhappyFeedback: isUnhappy)),
                                   );
                                 }
                               } catch (offlineError) {

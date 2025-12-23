@@ -9,6 +9,7 @@ import 'package:devkitflutter/ui/update_app.dart';
 import 'package:devkitflutter/ui/access_web_dashbaord.dart';
 import 'package:devkitflutter/ui/share_page.dart';
 import 'package:devkitflutter/ui/about.dart';
+import 'package:devkitflutter/ui/ticket_dashboard_page.dart';
 import 'package:devkitflutter/config/constant.dart';
 import 'package:devkitflutter/widgets/app_header_wrapper.dart';
 import 'package:devkitflutter/widgets/hospital_logo_widget.dart';
@@ -348,8 +349,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _manageTickets() {
-    // TODO: Implement manage tickets functionality
-    Fluttertoast.showToast(msg: "Manage Tickets - Coming Soon");
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TicketDashboardPage(),
+      ),
+    );
   }
 
   void _userActivity() {
@@ -540,6 +545,7 @@ class _HomePageState extends State<HomePage> {
     final name = prefs.getString('name') ?? 'User Name';
     final email = prefs.getString('email') ?? 'user@example.com';
     final mobile = prefs.getString('mobile') ?? 'No mobile number provided';
+    final designation = prefs.getString('designation') ?? 'Not available';
 
     showModalBottomSheet(
       context: context,
@@ -600,6 +606,16 @@ class _HomePageState extends State<HomePage> {
               Center(
                 child: Text(
                   mobile,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Center(
+                child: Text(
+                  designation,
                   style: const TextStyle(
                     fontSize: 14,
                     color: Colors.black,
