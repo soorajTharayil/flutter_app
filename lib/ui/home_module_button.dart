@@ -314,6 +314,9 @@ class _HomePageState extends State<HomePage> {
         Fluttertoast.showToast(msg: "Error opening link: ${e.toString()}");
       }
     } else if (module.containsKey('page')) {
+      // Reset language to English for IP and OP modules before navigating
+      await OPLocalizationService.resetToEnglish();
+
       // Navigate directly to module page
       // Data should already be preloaded when dashboard first loads
       // No need to preload again here - just navigate
