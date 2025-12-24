@@ -32,6 +32,8 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
   List<Department> departments = [];
   bool isLoadingDepartments = true;
   bool _hasValidatedOnce = false;
+  final TextEditingController _departmentSearchController = TextEditingController();
+  List<Department> _filteredDepartments = [];
 
   @override
   void initState() {
@@ -39,6 +41,14 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
     _loadCachedDepartments();
     // Listen to OP language changes only
     OPLocalizationService.instance.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Reload departments when page becomes visible (e.g., after refresh)
+    // This ensures fresh data is loaded after refresh button is clicked
+    _loadCachedDepartments();
   }
 
   /// Load departments from cache, fallback to API if cache is empty (first launch)
@@ -55,6 +65,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
         if (mounted) {
           setState(() {
             departments = cachedDepartments;
+            _filteredDepartments = cachedDepartments;
             isLoadingDepartments = false;
           });
         }
@@ -70,6 +81,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
   @override
   void dispose() {
     OPLocalizationService.instance.removeListener(_onLanguageChanged);
+    _departmentSearchController.dispose();
     super.dispose();
   }
 
@@ -85,6 +97,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
       if (mounted) {
         setState(() {
           departments = fetchedDepartments;
+          _filteredDepartments = fetchedDepartments;
           isLoadingDepartments = false;
         });
       }
@@ -178,10 +191,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                             hint: context.opTranslate('enter_uhid'),
                             icon: Icons.badge,
                             maxLength: 20,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
+                            keyboardType: TextInputType.text,
                             fieldKey: _uhidFieldKey,
                             validator: (val) => val == null || val.isEmpty
                                 ? context.opTranslate('uhid_required')
@@ -398,41 +408,127 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
               )
             : LayoutBuilder(
                 builder: (context, constraints) {
-                  return DropdownButtonFormField<String>(
-                    key: _departmentFieldKey,
-                    isExpanded: true,
-                    value: selectedDepartment,
-                    decoration: inputDecoration(
-                            context.opTranslate('select_department'))
-                        .copyWith(prefixIcon: const Icon(Icons.local_hospital)),
-                    items: departments
-                        .map((dept) => DropdownMenuItem(
-                              value: dept.title,
-                              child: Text(
-                                dept.title,
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedDepartment = value;
-                      });
-                      // After first validation attempt, validate this field when it changes
-                      if (_hasValidatedOnce &&
-                          _departmentFieldKey.currentState != null) {
-                        _departmentFieldKey.currentState!.validate();
-                      }
-                    },
-                    validator: (value) => value == null
-                        ? context.opTranslate('department_required')
-                        : null,
+                  return GestureDetector(
+                    onTap: () => _showDepartmentSearchModal(context),
+                    child: AbsorbPointer(
+                      child: TextFormField(
+                        key: _departmentFieldKey,
+                        controller: TextEditingController(
+                          text: selectedDepartment ?? '',
+                        ),
+                        decoration: inputDecoration(
+                                context.opTranslate('select_department'))
+                            .copyWith(
+                          prefixIcon: const Icon(Icons.local_hospital),
+                          suffixIcon: const Icon(Icons.arrow_drop_down),
+                        ),
+                        validator: (value) => selectedDepartment == null
+                            ? context.opTranslate('department_required')
+                            : null,
+                        readOnly: true,
+                      ),
+                    ),
                   );
                 },
               ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  void _showDepartmentSearchModal(BuildContext context) {
+    _departmentSearchController.clear();
+    _filteredDepartments = List.from(departments);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Search field at the top
+                TextField(
+                  controller: _departmentSearchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search department...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _departmentSearchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _departmentSearchController.clear();
+                              setModalState(() {
+                                _filteredDepartments = List.from(departments);
+                              });
+                            },
+                          )
+                        : const SizedBox.shrink(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF1F3F6),
+                  ),
+                  onChanged: (value) {
+                    setModalState(() {
+                      if (value.isEmpty) {
+                        _filteredDepartments = List.from(departments);
+                      } else {
+                        _filteredDepartments = departments
+                            .where((dept) => dept.title
+                                .toLowerCase()
+                                .contains(value.toLowerCase()))
+                            .toList();
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Filtered list
+                Expanded(
+                  child: _filteredDepartments.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No results found',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _filteredDepartments.length,
+                          itemBuilder: (context, index) {
+                            final dept = _filteredDepartments[index];
+                            final isSelected = selectedDepartment == dept.title;
+                            return ListTile(
+                              leading: const Icon(Icons.local_hospital),
+                              title: Text(dept.title),
+                              selected: isSelected,
+                              selectedTileColor: efeedorBrandGreen.withOpacity(0.1),
+                              onTap: () {
+                                setState(() {
+                                  selectedDepartment = dept.title;
+                                });
+                                if (_hasValidatedOnce &&
+                                    _departmentFieldKey.currentState != null) {
+                                  _departmentFieldKey.currentState!.validate();
+                                }
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 

@@ -1,13 +1,38 @@
 import 'package:flutter/material.dart';
 import '../services/op_localization_service.dart';
+import '../services/op_app_localizations.dart';
 
-class ThankYouScreen extends StatelessWidget {
+class ThankYouScreen extends StatefulWidget {
   final bool isUnhappyFeedback;
 
   const ThankYouScreen({
     Key? key,
     this.isUnhappyFeedback = false,
   }) : super(key: key);
+
+  @override
+  State<ThankYouScreen> createState() => _ThankYouScreenState();
+}
+
+class _ThankYouScreenState extends State<ThankYouScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // Listen to language changes
+    OPLocalizationService.instance.addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    OPLocalizationService.instance.removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +54,10 @@ class ThankYouScreen extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                 // Thank you message
-                const Text(
-                  'Thank you for taking time out to provide the feedback.',
+                Text(
+                  context.opTranslate('thank_you_main_message'),
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: Colors.black87,
@@ -41,7 +66,7 @@ class ThankYouScreen extends StatelessWidget {
                 const SizedBox(height: 30),
                 
                 // Conditional content based on rating (Poor/Worst = unhappy)
-                if (isUnhappyFeedback) ...[
+                if (widget.isUnhappyFeedback) ...[
                   // VERSION B: Unhappy feedback (Rating = Poor or Worst)
                   Icon(
                     Icons.check_circle,
@@ -49,10 +74,10 @@ class ThankYouScreen extends StatelessWidget {
                     color: Colors.green.shade700,
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'We sincerely apologize for not meeting your expectations.\nWe would like to regain your trust.\nOur executive will get in touch with you.',
+                  Text(
+                    context.opTranslate('thank_you_unhappy_message'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.black87,
                       height: 1.5,
@@ -65,10 +90,10 @@ class ThankYouScreen extends StatelessWidget {
                     style: TextStyle(fontSize: 80),
                   ),
                   const SizedBox(height: 20),
-                  const Text(
-                    'Kindly rate us on Google by clicking the link sent to you via SMS',
+                  Text(
+                    context.opTranslate('thank_you_happy_message'),
                     textAlign: TextAlign.center,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 16,
                       color: Colors.black87,
                       height: 1.5,
@@ -86,7 +111,7 @@ class ThankYouScreen extends StatelessWidget {
                     Navigator.popUntil(context, (route) => route.isFirst);
                   },
                   icon: const Icon(Icons.home),
-                  label: const Text('Continue to homepage'),
+                  label: Text(context.opTranslate('continue_to_homepage')),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.teal,
                     foregroundColor: Colors.white,

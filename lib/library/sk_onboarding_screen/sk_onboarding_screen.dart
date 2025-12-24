@@ -212,10 +212,6 @@ class SKOnboardingScreenState extends State<SKOnboardingScreen> {
                     maxHeight: imageSize,
                   ),
                   padding: const EdgeInsets.all(20.0),
-                  decoration: BoxDecoration(
-                    color: widget.themeColor.withOpacity(0.05),
-                    shape: BoxShape.circle,
-                  ),
                   child: (page.imageAssetPath != null)
                       ? Image.asset(
                           page.imageAssetPath!,
@@ -272,7 +268,7 @@ class SKOnboardingScreenState extends State<SKOnboardingScreen> {
                     style: TextStyle(
                       fontWeight: FontWeight.w400,
                       color: page.descripColor,
-                      fontSize: 26,
+                      fontSize: page.descriptionFontSize ?? 26,
                       height: 1.5,
                       letterSpacing: 0.2,
                     ),

@@ -7,6 +7,7 @@ class SkOnboardingModel {
   Color descripColor;
   String? imageAssetPath;
   String? imageFromUrl;
+  double? descriptionFontSize;
 
   SkOnboardingModel({
     required this.title,
@@ -15,5 +16,6 @@ class SkOnboardingModel {
     this.imageFromUrl,
     required this.titleColor,
     required this.descripColor,
+    this.descriptionFontSize,
   });
 }

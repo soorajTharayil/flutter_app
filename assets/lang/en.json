@@ -75,8 +75,8 @@
   "ip_mobile_subtitle": "Please provide your 10 digit registered mobile number to proceed *",
   "enter_ip_mobile_number": "Enter your mobile number",
   "ip_discharge_feedback": "IP Discharge Feedback",
-  "ip_discharge_feedback_form": "IP Discharge Feedback Form",
-  "op_feedback_form": "Outpatient Feedback Form",
+  "ip_discharge_feedback_form": "IP DISCHARGE FEEDBACK FORM",
+  "op_feedback_form": "OUTPATIENT FEEDBACK FORM",
   "ip_next_page_title": "Placeholder Page",
   "ip_next_page_subtitle": "This is a placeholder for the next step in IP Discharge Feedback flow.",
   "patient_information": "PATIENT INFORMATION",
@@ -95,5 +95,9 @@
   "staff_recognition_description": "Please help us recognize a staff member of our hospital who may have performed services beyond your expectations.",
   "staff_name": "Staff name",
   "dear_patient": "Dear",
-  "thank_you_message": "Thank you for choosing our hospital for your healthcare needs. We work constantly to improve and meet your expectations. To serve our patients better, kindly spare a few minutes to fill this feedback form. Your opinion is of immense value to us."
+  "thank_you_message": "Thank you for choosing our hospital for your healthcare needs. We work constantly to improve and meet your expectations. To serve our patients better, kindly spare a few minutes to fill this feedback form. Your opinion is of immense value to us.",
+  "thank_you_main_message": "Thank you for taking time out to provide the feedback.",
+  "thank_you_happy_message": "Kindly rate us on Google by clicking the link sent to you via SMS",
+  "thank_you_unhappy_message": "We sincerely apologize for not meeting your expectations.\nWe would like to regain your trust.\nOur executive will get in touch with you.",
+  "continue_to_homepage": "Continue to homepage"
 }

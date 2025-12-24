@@ -9,7 +9,7 @@ class IPDischargeNextPage extends StatefulWidget {
   final String patientName;
   final String patientUhid;
   final String ward;
-  final String roomBed;
+  final String bedno;
 
   const IPDischargeNextPage({
     Key? key,
@@ -17,7 +17,7 @@ class IPDischargeNextPage extends StatefulWidget {
     required this.patientName,
     required this.patientUhid,
     required this.ward,
-    required this.roomBed,
+    required this.bedno,
   }) : super(key: key);
 
   @override
@@ -120,7 +120,7 @@ class _IPDischargeNextPageState extends State<IPDischargeNextPage> {
                           _buildInfoCard(
                             Icons.bed,
                             context.opTranslate('room_bed_number'),
-                            widget.roomBed,
+                            widget.bedno,
                           ),
                         ],
                       ),

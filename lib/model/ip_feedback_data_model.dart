@@ -6,7 +6,7 @@ class IPFeedbackData {
   String uhid;
   String mobileNumber;
   String ward;
-  String roomBed;
+  String bedno;
 
   Map<String, int> feedbackValues;
   Map<String, Map<String, bool>> selectedReasons;
@@ -20,7 +20,7 @@ class IPFeedbackData {
     this.uhid = '',
     this.mobileNumber = '',
     this.ward = '',
-    this.roomBed = '',
+    this.bedno = '',
     this.feedbackValues = const {},
     this.selectedReasons = const {},
     this.comments = const {},

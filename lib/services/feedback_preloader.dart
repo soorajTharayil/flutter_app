@@ -71,5 +71,70 @@ class FeedbackPreloader {
       // Silently fail
     }
   }
+
+  /// Force refresh all data by clearing cache and reloading
+  /// This will clear cached data and fetch fresh data from APIs
+  static Future<void> forceRefreshAllData() async {
+    try {
+      final domain = await getDomainFromPrefs();
+      
+      if (domain.isEmpty) {
+        throw Exception('Domain not found');
+      }
+
+      // Clear cached data by removing cache keys
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Clear OP department cache (used by OPDataLoader)
+      await prefs.remove('op_departments_cache');
+      
+      // Clear department service cache (used by department_service.dart)
+      // This cache key format is: 'departments_$domain'
+      final deptCacheKey = 'departments_$domain';
+      await prefs.remove(deptCacheKey);
+      
+      // Get all keys once
+      final allKeys = prefs.getKeys().toList();
+      
+      // Clear all OP question set caches (they use prefix 'op_question_sets_')
+      for (final key in allKeys) {
+        if (key.startsWith('op_question_sets_')) {
+          await prefs.remove(key);
+        }
+      }
+      
+      // Also clear OP question set caches from op_question_service.dart
+      // They use format 'questionSets_${domain}_$department'
+      for (final key in allKeys) {
+        if (key.startsWith('questionSets_')) {
+          await prefs.remove(key);
+        }
+      }
+      
+      // Clear IP ward caches (they use format 'ip_wards_{domain}_{mobile}')
+      for (final key in allKeys) {
+        if (key.startsWith('ip_wards_')) {
+          await prefs.remove(key);
+        }
+      }
+      
+      // Clear IP question set caches (they use format 'ip_questionSets_{domain}_{mobile}')
+      for (final key in allKeys) {
+        if (key.startsWith('ip_questionSets_')) {
+          await prefs.remove(key);
+        }
+      }
+      
+      // Reset preload flag to force fresh fetch
+      await resetPreloadFlag();
+      
+      // Now reload all data fresh from APIs
+      // This will call both ward.php (via IPDataLoader) and department.php (via OPDataLoader)
+      await preloadAllFeedbackData();
+    } catch (e) {
+      // Re-throw to allow caller to handle error
+      throw Exception('Failed to refresh data: ${e.toString()}');
+    }
+  }
 }
 

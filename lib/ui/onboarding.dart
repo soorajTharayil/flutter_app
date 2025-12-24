@@ -17,35 +17,38 @@ class _OnBoardingPageState extends State<OnBoardingPage> {
   final pages = [
     SkOnboardingModel(
       title: 'Welcome to Efeedor',
-      description:
-          'Digitizing healthcare experience and quality.',
+      description: 'Digitizing healthcare experience and quality.',
       titleColor: efeedorBrandGreen,
       descripColor: const Color(0xFF666666),
       imageAssetPath: 'assets/images/onboarding_images1.png',
+      descriptionFontSize: 18,
     ),
     SkOnboardingModel(
       title: 'Access Your Hospital',
-      description:
-          'Enter your hospital domain and request access.',
+      description: 'Enter your hospital domain and request access.',
       titleColor: efeedorBrandGreen,
       descripColor: const Color(0xFF666666),
       imageAssetPath: 'assets/images/onboarding_images2.png',
+      descriptionFontSize: 18,
+
     ),
     SkOnboardingModel(
       title: 'Secure Login',
-      description:
-          'username and password recording and managing data.',
+      description: 'Sign in with your username and password to begin recording and managing data.',
       titleColor: efeedorBrandGreen,
       descripColor: const Color(0xFF666666),
       imageAssetPath: 'assets/images/onboarding_images3.png',
+      descriptionFontSize: 18,
+
     ),
     SkOnboardingModel(
       title: 'Collect. Analyze. Improve.',
-      description:
-          'Capture data, track performance, and drive improvement.',
+      description: 'Capture data, track performance, and drive improvement.',
       titleColor: efeedorBrandGreen,
       descripColor: const Color(0xFF666666),
       imageAssetPath: 'assets/images/onboarding_images4.png',
+      descriptionFontSize: 18,
+
     ),
   ];
 

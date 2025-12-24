@@ -1,13 +1,13 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:http/http.dart' as http;
 import 'package:devkitflutter/ui/op_feedback_page.dart'; // Adjust if needed
 import 'package:devkitflutter/ui/webview_page.dart';
 import 'package:devkitflutter/ui/signin.dart';
 import 'package:devkitflutter/ui/ip_discharge_mobile_page.dart';
 import 'package:devkitflutter/ui/update_app.dart';
 import 'package:devkitflutter/ui/access_web_dashbaord.dart';
-import 'package:devkitflutter/ui/share_page.dart';
 import 'package:devkitflutter/ui/about.dart';
 import 'package:devkitflutter/ui/ticket_dashboard_page.dart';
 import 'package:devkitflutter/config/constant.dart';
@@ -44,6 +44,23 @@ class _HomePageState extends State<HomePage> {
     // Preload all feedback data (IP + OP) on first dashboard load
     _preloadFeedbackDataOnFirstLoad();
     // Dashboard always uses English - no language listener needed
+
+    // Listen for offline feedback saves to update count immediately
+    OfflineStorageService.feedbackSavedNotifier
+        .addListener(_onOfflineFeedbackSaved);
+  }
+
+  @override
+  void dispose() {
+    // Remove listener when widget is disposed
+    OfflineStorageService.feedbackSavedNotifier
+        .removeListener(_onOfflineFeedbackSaved);
+    super.dispose();
+  }
+
+  /// Callback when offline feedback is saved - refresh count immediately
+  void _onOfflineFeedbackSaved() {
+    _loadOfflineFeedbackCount();
   }
 
   /// Preload all feedback data (IP + OP) on first dashboard load after login
@@ -94,34 +111,34 @@ class _HomePageState extends State<HomePage> {
   final List<Map<String, dynamic>> _allModules = [
     {
       'title': 'IP Discharge Feedback',
-      'icon': Icons.exit_to_app,
+      'icon': Icons.reviews,
       'color': Colors.blue,
-      'desc': 'Submit feedback for in-patient discharge experience',
+      'desc': 'Collect inpatient feedback at the time of discharge',
       'page':
           const IPDischargeMobilePage(), // Use Flutter page instead of WebView
       'permissionKey': 'IP-MODULE',
     },
     {
       'title': 'Outpatient Feedback',
-      'icon': Icons.people_alt,
+      'icon': Icons.thumbs_up_down,
       'color': Colors.green,
-      'desc': 'Share your outpatient visit experience',
+      'desc': 'Collect outpatient feedback after OP consultation',
       'page': const OpFeedbackPage(), // Keep internal navigation
       'permissionKey': 'OP-MODULE',
     },
     {
       'title': 'IP Concern / Request',
-      'icon': Icons.warning_amber_rounded,
+      'icon': Icons.support_agent,
       'color': Colors.pinkAccent,
-      'desc': 'Raise concerns or submit requests for in-patients',
+      'desc': 'Capture inpatient concerns and requests during hospital stay',
       'urlPath': '/pcrf', // Web URL path
       'permissionKey': 'PCF-MODULE',
     },
     {
       'title': 'Raise Internal Request',
-      'icon': Icons.add_circle_outline,
+      'icon': Icons.app_settings_alt,
       'color': Colors.orange,
-      'desc': 'Create and submit internal department requests',
+      'desc': 'Raise requests to internal hospital departments',
       'urlPath': '/isrr', // Web URL path
       'permissionKey': 'ADDRESSED-REQUESTS', // Using this permission key
     },
@@ -129,23 +146,23 @@ class _HomePageState extends State<HomePage> {
       'title': 'Report Incident',
       'icon': Icons.report_problem,
       'color': Colors.purple,
-      'desc': 'Document and report healthcare incidents',
+      'desc': 'Report healthcare incidents observed within hospital premises',
       'urlPath': '/inn', // Web URL path
       'permissionKey': 'INCIDENT-MODULE',
     },
     {
       'title': 'Quality KPI Forms',
-      'icon': Icons.assessment,
+      'icon': Icons.speed,
       'color': Colors.teal,
-      'desc': 'Access quality key performance indicator forms',
+      'desc': 'Record mandatory quality KPIs monitored by the hospital',
       'urlPath': '/qim_forms', // Web URL path
       'permissionKey': 'QUALITY-MODULE',
     },
     {
       'title': 'Healthcare Audit Forms',
-      'icon': Icons.assignment,
+      'icon': Icons.checklist_rtl,
       'color': Colors.indigo,
-      'desc': 'Complete healthcare audit and compliance forms',
+      'desc': 'Conduct quality audits using structured checklists',
       'urlPath': '/audit_forms', // Web URL path
       'permissionKey': 'AUDIT-MODULE',
     },
@@ -206,6 +223,60 @@ class _HomePageState extends State<HomePage> {
     }).toList();
   }
 
+  // Get bottom navigation bar items filtered by permissions
+  List<BottomNavigationBarItem> get _bottomNavItems {
+    final items = <BottomNavigationBarItem>[
+      const BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+      const BottomNavigationBarItem(
+          icon: Icon(Icons.dashboard), label: 'Dashboard'),
+    ];
+
+    // Add Tickets tab only if MANAGE-TICKETS permission is true
+    if (_permissions['MANAGE-TICKETS'] == true) {
+      items.add(const BottomNavigationBarItem(
+          icon: Icon(Icons.confirmation_number), label: 'Tickets'));
+    }
+
+    // Always add Menu tab
+    items.add(
+        const BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu'));
+
+    return items;
+  }
+
+  // Build bottom navigation bar with permission-based items
+  Widget _buildBottomNavigationBar() {
+    final items = _bottomNavItems;
+    final hasTicketsPermission = _permissions['MANAGE-TICKETS'] == true;
+
+    return BottomNavigationBar(
+      currentIndex:
+          _selectedIndex >= items.length ? items.length - 1 : _selectedIndex,
+      selectedItemColor: efeedorBrandGreen,
+      unselectedItemColor: Colors.grey,
+      showSelectedLabels: true,
+      showUnselectedLabels: true,
+      elevation: 0, // Remove shadow effect
+      onTap: (i) {
+        // Calculate actual indices based on whether Tickets tab is present
+        final dashboardIndex = 1;
+        final ticketsIndex = hasTicketsPermission ? 2 : -1; // -1 if not present
+        final menuIndex = hasTicketsPermission ? 3 : 2;
+
+        if (i == menuIndex) {
+          _openMenuBottomSheet(); // BOTTOM SHEET MENU
+        } else if (i == ticketsIndex && hasTicketsPermission) {
+          _manageTickets(); // MANAGE TICKETS
+        } else if (i == dashboardIndex) {
+          _accessWebDashboard(); // DASHBOARD
+        } else {
+          setState(() => _selectedIndex = i);
+        }
+      },
+      items: items,
+    );
+  }
+
   List<Map<String, dynamic>> get _filteredModules {
     final filtered = modules;
     if (_query.isEmpty) return filtered;
@@ -215,14 +286,6 @@ class _HomePageState extends State<HomePage> {
       final desc = (m['desc'] as String).toLowerCase();
       return title.contains(q) || desc.contains(q);
     }).toList();
-  }
-
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    Fluttertoast.showToast(msg: "Tapped: $index");
-    // TODO: Navigate to respective bottom tab pages if needed
   }
 
   Future<void> _logout() async {
@@ -304,7 +367,16 @@ class _HomePageState extends State<HomePage> {
         final url = 'https://$domain.efeedor.com$urlPath';
         final title = module['title'] as String;
 
-        // Navigate to WebView page
+        // Special handling for modules that require permission injection - call login API first
+        // These modules need permissions injected into WebView for Angular ng-if conditions
+        if (urlPath == '/qim_forms' ||
+            urlPath == '/audit_forms' ||
+            urlPath == '/monthly_audit_reports') {
+          await _loadModuleWithPermissions(context, url, title, urlPath);
+          return;
+        }
+
+        // Navigate to WebView page for other modules
         Navigator.push(
           context,
           MaterialPageRoute(
@@ -329,6 +401,161 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  /// Load module with API-based permissions
+  /// Calls login.php API first, then loads WebView with permission data
+  /// Used for: Quality KPI Forms, Healthcare Audit Forms, Departmental Monthly Reports
+  Future<void> _loadModuleWithPermissions(
+      BuildContext context, String url, String title, String urlPath) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Loading permissions...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Get stored credentials
+      // IMPORTANT: Use email/mobile first (as API expects email/mobile format, not numeric userid)
+      // During login, _emailController.text is sent as "userid", so we should use email/mobile
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('email') ?? '';
+      final mobile = prefs.getString('mobile') ?? '';
+      final userid = prefs.getString('userid') ?? '';
+      // Prefer email, then mobile, then userid (as fallback)
+      final loginUserid =
+          email.isNotEmpty ? email : (mobile.isNotEmpty ? mobile : userid);
+      final password = prefs.getString('password') ?? '';
+
+      if (loginUserid.isEmpty || password.isEmpty) {
+        if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+          Fluttertoast.showToast(
+            msg: "User credentials not found. Please login again.",
+            backgroundColor: Colors.red,
+          );
+        }
+        return;
+      }
+
+      // Get domain
+      final domain = await dept_service.getDomainFromPrefs();
+      if (domain.isEmpty) {
+        if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+          Fluttertoast.showToast(
+            msg: "Domain not found. Please login again.",
+            backgroundColor: Colors.red,
+          );
+        }
+        return;
+      }
+
+      // Call login.php API - use the same endpoint and format as signin.dart
+      final loginUrl = await getLoginEndpoint();
+      final loginBody = {
+        "userid": loginUserid, // Use email/mobile format, not numeric userid
+        "password": password,
+      };
+
+      print(
+          '$title - Calling login API with userid: ${loginUserid.isNotEmpty ? "${loginUserid.substring(0, loginUserid.length > 3 ? 3 : loginUserid.length)}..." : "empty"}');
+
+      final response = await http
+          .post(
+        Uri.parse(loginUrl),
+        headers: {"Content-Type": "application/json"},
+        body: jsonEncode(loginBody),
+      )
+          .timeout(
+        const Duration(seconds: 30),
+        onTimeout: () {
+          throw Exception('Request timeout. Please check your connection.');
+        },
+      );
+
+      // Parse response
+      Map<String, dynamic> responseData;
+      try {
+        responseData = jsonDecode(response.body) as Map<String, dynamic>;
+        print('$title - API Response Status: ${responseData['status']}');
+        print('$title - API Response Message: ${responseData['message']}');
+      } catch (e) {
+        print('$title - JSON Parse Error: $e');
+        print('$title - Response Body: ${response.body}');
+        if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+          Fluttertoast.showToast(
+            msg: "Invalid response from server. Please try again.",
+            backgroundColor: Colors.red,
+            toastLength: Toast.LENGTH_LONG,
+          );
+        }
+        return;
+      }
+
+      // Check if login was successful
+      if (response.statusCode == 200 && responseData['status'] == 'success') {
+        print('$title - Login successful, loading WebView with permissions');
+        // Close loading dialog
+        if (mounted) {
+          Navigator.of(context).pop();
+        }
+
+        // Navigate to WebView with permission data
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => WebViewPage(
+                url: url,
+                title: title,
+                permissionData:
+                    responseData, // Pass entire API response (includes permissions)
+              ),
+            ),
+          );
+        }
+      } else {
+        // API failed - show error and don't load WebView
+        final errorMessage = responseData['message']?.toString() ??
+            'Failed to load permissions. Please try again.';
+        print('$title - Login failed: $errorMessage');
+        if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+          Fluttertoast.showToast(
+            msg: errorMessage,
+            backgroundColor: Colors.red,
+            toastLength: Toast.LENGTH_LONG,
+          );
+        }
+      }
+    } catch (e) {
+      // Error occurred - show error and don't load WebView
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+        Fluttertoast.showToast(
+          msg: "Error loading permissions: ${e.toString()}",
+          backgroundColor: Colors.red,
+          toastLength: Toast.LENGTH_LONG,
+        );
+      }
+    }
+  }
+
   void _accessWebDashboard() {
     Navigator.push(
       context,
@@ -336,9 +563,67 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _syncData() {
-    // Implement data sync logic
-    Fluttertoast.showToast(msg: "Syncing data...");
+  Future<void> _syncData() async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: Card(
+          child: Padding(
+            padding: EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(height: 16),
+                Text('Refreshing data...'),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    try {
+      // Force refresh all feedback data (clears cache and fetches fresh)
+      await FeedbackPreloader.forceRefreshAllData();
+
+      // Refresh offline count after data refresh
+      await _loadOfflineFeedbackCount();
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Show success message
+        Fluttertoast.showToast(
+          msg: "Data refreshed successfully",
+          toastLength: Toast.LENGTH_SHORT,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.green,
+          textColor: Colors.white,
+        );
+
+        // Refresh UI to reflect updated data
+        setState(() {});
+      }
+    } catch (e) {
+      // Close loading dialog
+      if (mounted) {
+        Navigator.of(context).pop();
+
+        // Show error message
+        Fluttertoast.showToast(
+          msg:
+              "Failed to refresh data. Please check your connection and try again.",
+          toastLength: Toast.LENGTH_LONG,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
+      }
+    }
   }
 
   void _updateApp() {
@@ -362,8 +647,9 @@ class _HomePageState extends State<HomePage> {
     Fluttertoast.showToast(msg: "User Activity - Coming Soon");
   }
 
-  void _openMenuBottomSheet() {
-    final List<Map<String, dynamic>> menuItems = [
+  // Get filtered menu items based on permissions
+  List<Map<String, dynamic>> get _filteredMenuItems {
+    final List<Map<String, dynamic>> allMenuItems = [
       {
         'icon': Icons.dashboard,
         'title': 'Access Web Dashboard',
@@ -407,6 +693,7 @@ class _HomePageState extends State<HomePage> {
         'title': 'User Activity',
         'color': Colors.cyan,
         'action': _userActivity,
+        'permissionKey': 'USER-ACTIVITY', // Permission key for filtering
       },
       {
         'icon': Icons.info,
@@ -426,6 +713,22 @@ class _HomePageState extends State<HomePage> {
         'action': _logout,
       },
     ];
+
+    // Filter menu items based on permissions
+    return allMenuItems.where((item) {
+      final permissionKey = item['permissionKey'] as String?;
+      if (permissionKey != null) {
+        // Check if permission exists and is true
+        final hasPermission = _permissions[permissionKey] == true;
+        return hasPermission;
+      }
+      // Items without permissionKey are always shown
+      return true;
+    }).toList();
+  }
+
+  void _openMenuBottomSheet() {
+    final List<Map<String, dynamic>> menuItems = _filteredMenuItems;
 
     showModalBottomSheet(
       context: context,
@@ -476,48 +779,7 @@ class _HomePageState extends State<HomePage> {
                   child: SingleChildScrollView(
                     child: Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
-                      child: Column(
-                        children: [
-                          // Access Web Dashboard
-                          _buildMenuItem(menuItems[0], 0, isFullWidth: true),
-                          const SizedBox(height: 16),
-                          // Refresh Data next to Update App
-                          Row(
-                            children: [
-                              Expanded(child: _buildMenuItem(menuItems[1], 1)),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildMenuItem(menuItems[2], 2)),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // Share App next to Support
-                          Row(
-                            children: [
-                              Expanded(child: _buildMenuItem(menuItems[3], 3)),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildMenuItem(menuItems[4], 4)),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // Profile next to User Activity
-                          Row(
-                            children: [
-                              Expanded(child: _buildMenuItem(menuItems[5], 5)),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildMenuItem(menuItems[6], 6)),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          // About next to Logout
-                          Row(
-                            children: [
-                              Expanded(child: _buildMenuItem(menuItems[7], 7)),
-                              const SizedBox(width: 16),
-                              Expanded(child: _buildMenuItem(menuItems[8], 8)),
-                            ],
-                          ),
-                        ],
-                      ),
+                      child: _buildMenuItemsLayout(menuItems),
                     ),
                   ),
                 ),
@@ -633,6 +895,48 @@ class _HomePageState extends State<HomePage> {
   }
 
   // Helper method to build menu items
+  // Build menu items layout dynamically based on filtered items
+  Widget _buildMenuItemsLayout(List<Map<String, dynamic>> menuItems) {
+    if (menuItems.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    final List<Widget> children = [];
+
+    // First item (Access Web Dashboard) is full width
+    if (menuItems.isNotEmpty) {
+      children.add(_buildMenuItem(menuItems[0], 0, isFullWidth: true));
+      children.add(const SizedBox(height: 16));
+    }
+
+    // Process remaining items in pairs (rows of 2)
+    int index = 1;
+    while (index < menuItems.length) {
+      if (index + 1 < menuItems.length) {
+        // Two items side by side
+        children.add(
+          Row(
+            children: [
+              Expanded(child: _buildMenuItem(menuItems[index], index)),
+              const SizedBox(width: 16),
+              Expanded(child: _buildMenuItem(menuItems[index + 1], index + 1)),
+            ],
+          ),
+        );
+        index += 2;
+      } else {
+        // Single item (last one)
+        children.add(_buildMenuItem(menuItems[index], index));
+        index += 1;
+      }
+      if (index < menuItems.length) {
+        children.add(const SizedBox(height: 16));
+      }
+    }
+
+    return Column(children: children);
+  }
+
   Widget _buildMenuItem(Map<String, dynamic> item, int index,
       {bool isFullWidth = false}) {
     return TweenAnimationBuilder<double>(
@@ -781,33 +1085,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        selectedItemColor: efeedorBrandGreen,
-        unselectedItemColor: Colors.grey,
-        showSelectedLabels: true,
-        showUnselectedLabels: true,
-        elevation: 0, // Remove shadow effect
-        onTap: (i) {
-          if (i == 3) {
-            _openMenuBottomSheet(); // BOTTOM SHEET MENU
-          } else if (i == 2) {
-            _manageTickets(); // MANAGE TICKETS
-          } else if (i == 1) {
-            _accessWebDashboard(); // DASHBOARD
-          } else {
-            setState(() => _selectedIndex = i);
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.dashboard), label: 'Dashboard'),
-          BottomNavigationBarItem(
-              icon: Icon(Icons.confirmation_number), label: 'Tickets'),
-          BottomNavigationBarItem(icon: Icon(Icons.menu), label: 'Menu'),
-        ],
-      ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
       child: Stack(
         children: [
           CustomScrollView(

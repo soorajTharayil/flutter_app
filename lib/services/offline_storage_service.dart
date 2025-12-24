@@ -1,10 +1,14 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../model/offline_feedback_entry.dart';
 
 class OfflineStorageService {
   static const String _opStorageKey = 'offline_op_feedback_list';
   static const String _ipStorageKey = 'offline_ip_feedback_list';
+
+  // Notifier to signal when offline feedback is saved (for immediate UI updates)
+  static final ValueNotifier<void> feedbackSavedNotifier = ValueNotifier<void>(null);
 
   // ==================== OP FEEDBACK METHODS ====================
   
@@ -34,6 +38,9 @@ class OfflineStorageService {
       
       // Store as JSON string
       await prefs.setString(_opStorageKey, jsonEncode(jsonList));
+      
+      // Notify listeners that feedback was saved (for immediate UI updates)
+      feedbackSavedNotifier.value = null;
     } catch (e) {
       throw Exception('Failed to save offline OP feedback: $e');
     }
@@ -125,6 +132,9 @@ class OfflineStorageService {
       
       // Store as JSON string
       await prefs.setString(_ipStorageKey, jsonEncode(jsonList));
+      
+      // Notify listeners that feedback was saved (for immediate UI updates)
+      feedbackSavedNotifier.value = null;
     } catch (e) {
       throw Exception('Failed to save offline IP feedback: $e');
     }

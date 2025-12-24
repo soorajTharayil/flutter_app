@@ -38,8 +38,10 @@ class IPDischargePatientInfoPage extends StatefulWidget {
 class _IPDischargePatientInfoPageState
     extends State<IPDischargePatientInfoPage> {
   final _formKey = GlobalKey<FormState>();
+  final _scrollController = ScrollController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _uhidController = TextEditingController();
+  final TextEditingController _roomBedController = TextEditingController();
   final _nameFieldKey = GlobalKey<FormFieldState<String>>();
   final _uhidFieldKey = GlobalKey<FormFieldState<String>>();
   final _wardFieldKey = GlobalKey<FormFieldState<String>>();
@@ -51,6 +53,8 @@ class _IPDischargePatientInfoPageState
   List<String> bedNumbers = [];
   bool isLoadingWards = true;
   bool _hasValidatedOnce = false;
+  final TextEditingController _wardSearchController = TextEditingController();
+  List<Ward> _filteredWards = [];
 
   @override
   void initState() {
@@ -63,8 +67,11 @@ class _IPDischargePatientInfoPageState
   @override
   void dispose() {
     OPLocalizationService.instance.removeListener(_onLanguageChanged);
+    _scrollController.dispose();
     _nameController.dispose();
     _uhidController.dispose();
+    _roomBedController.dispose();
+    _wardSearchController.dispose();
     super.dispose();
   }
 
@@ -86,6 +93,7 @@ class _IPDischargePatientInfoPageState
       if (mounted) {
         setState(() {
           wards = cachedWards;
+          _filteredWards = cachedWards;
           isLoadingWards = false;
         });
 
@@ -117,6 +125,7 @@ class _IPDischargePatientInfoPageState
       setState(() {
         bedNumbers = [];
         selectedRoomBed = null;
+        _roomBedController.clear();
       });
       return;
     }
@@ -125,17 +134,68 @@ class _IPDischargePatientInfoPageState
     setState(() {
       bedNumbers = bedList;
       selectedRoomBed = null; // Reset selection when ward changes
+      _roomBedController.clear();
+    });
+  }
+
+  /// Find the first invalid field key in order: Name -> UHID -> Ward -> Room/Bed
+  /// Checks field values directly to identify which field is invalid
+  GlobalKey<FormFieldState<String>>? _findFirstInvalidField() {
+    // Check Patient Name field
+    final nameValue = _nameController.text.trim();
+    if (nameValue.isEmpty || nameValue.length < 2) {
+      return _nameFieldKey;
+    }
+    
+    // Check Patient UHID field
+    final uhidValue = _uhidController.text.trim();
+    if (uhidValue.isEmpty) {
+      return _uhidFieldKey;
+    }
+    
+    // Check Ward field
+    if (selectedWard == null) {
+      return _wardFieldKey;
+    }
+    
+    // Check Room/Bed field
+    final roomBedValue = _roomBedController.text.trim();
+    if (roomBedValue.isEmpty) {
+      return _roomBedFieldKey;
+    }
+    
+    return null;
+  }
+
+  /// Scroll to the field associated with the given GlobalKey
+  void _scrollToField(GlobalKey<FormFieldState<String>> fieldKey) {
+    // Use a post-frame callback to ensure the widget tree is fully built
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && fieldKey.currentContext != null) {
+        Scrollable.ensureVisible(
+          fieldKey.currentContext!,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeInOut,
+          alignment: 0.1, // Position the field near the top of the visible area
+        );
+      }
     });
   }
 
   void _navigateToEmojiPage() async {
+    // Set validation flag
+    setState(() {
+      _hasValidatedOnce = true;
+    });
+
+    // Validate all fields
     if (_formKey.currentState!.validate()) {
       final feedbackData = IPFeedbackData(
         name: _nameController.text,
         uhid: _uhidController.text,
         mobileNumber: widget.mobileNumber,
         ward: selectedWard!,
-        roomBed: selectedRoomBed!,
+        bedno: selectedRoomBed!,
       );
 
       Navigator.push(
@@ -146,6 +206,37 @@ class _IPDischargePatientInfoPageState
           ),
         ),
       );
+    } else {
+      // Find the first invalid field
+      final firstInvalidField = _findFirstInvalidField();
+      
+      if (firstInvalidField != null) {
+        // Show alert dialog
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: Text(context.opTranslate('error')),
+              content: const Text('Please fill all required fields.'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    // Scroll to the first invalid field after dialog is dismissed
+                    // Use a small delay to ensure dialog animation completes
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      if (mounted) {
+                        _scrollToField(firstInvalidField);
+                      }
+                    });
+                  },
+                  child: Text(context.opTranslate('ok')),
+                ),
+              ],
+            );
+          },
+        );
+      }
     }
   }
 
@@ -178,6 +269,7 @@ class _IPDischargePatientInfoPageState
 
             Expanded(
               child: SingleChildScrollView(
+                controller: _scrollController,
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                 child: Card(
                   elevation: 6,
@@ -232,10 +324,7 @@ class _IPDischargePatientInfoPageState
                             hint: context.opTranslate('enter_ip_uhid'),
                             icon: Icons.badge,
                             maxLength: 20,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
+                            keyboardType: TextInputType.text,
                             fieldKey: _uhidFieldKey,
                             validator: (val) => val == null || val.isEmpty
                                 ? context.opTranslate('uhid_required')
@@ -283,9 +372,6 @@ class _IPDischargePatientInfoPageState
                   Expanded(
                     child: ElevatedButton.icon(
                       onPressed: () {
-                        setState(() {
-                          _hasValidatedOnce = true;
-                        });
                         _navigateToEmojiPage();
                       },
                       icon:
@@ -401,49 +487,146 @@ class _IPDischargePatientInfoPageState
             : LayoutBuilder(
                 builder: (context, constraints) {
                   final globalLang = OPLocalizationService.currentLanguage;
-                  return DropdownButtonFormField<String>(
-                    key: _wardFieldKey,
-                    isExpanded: true,
-                    value: selectedWard,
-                    decoration: inputDecoration(
-                            context.opTranslate('select_floor_ward'))
-                        .copyWith(prefixIcon: const Icon(Icons.local_hospital)),
-                    items: wards.map((ward) {
-                      final displayTitle = apiText(
-                        ward.title,
-                        ward.titlek,
-                        ward.titlem,
-                        globalLang,
-                      );
-                      return DropdownMenuItem(
-                        value: ward.title, // Store English title as value
-                        child: Text(
-                          displayTitle,
-                          overflow: TextOverflow.ellipsis,
-                          maxLines: 1,
+                  String? displayText;
+                  if (selectedWard != null) {
+                    final ward = wards.firstWhere((w) => w.title == selectedWard);
+                    displayText = apiText(
+                      ward.title,
+                      ward.titlek,
+                      ward.titlem,
+                      globalLang,
+                    );
+                  }
+                  return GestureDetector(
+                    onTap: () => _showWardSearchModal(context, globalLang),
+                    child: AbsorbPointer(
+                      child: TextFormField(
+                        key: _wardFieldKey,
+                        controller: TextEditingController(text: displayText ?? ''),
+                        decoration: inputDecoration(
+                                context.opTranslate('select_floor_ward'))
+                            .copyWith(
+                          prefixIcon: const Icon(Icons.local_hospital),
+                          suffixIcon: const Icon(Icons.arrow_drop_down),
                         ),
-                      );
-                    }).toList(),
-                    onChanged: (value) {
-                      setState(() {
-                        selectedWard = value;
-                      });
-                      // Load bed numbers from selected ward's bedno array
-                      _loadBedNumbers(value);
-                      // After first validation attempt, validate this field when it changes
-                      if (_hasValidatedOnce &&
-                          _wardFieldKey.currentState != null) {
-                        _wardFieldKey.currentState!.validate();
-                      }
-                    },
-                    validator: (value) => value == null
-                        ? context.opTranslate('floor_ward_required')
-                        : null,
+                        validator: (value) => selectedWard == null
+                            ? context.opTranslate('floor_ward_required')
+                            : null,
+                        readOnly: true,
+                      ),
+                    ),
                   );
                 },
               ),
         const SizedBox(height: 16),
       ],
+    );
+  }
+
+  void _showWardSearchModal(BuildContext context, String globalLang) {
+    _wardSearchController.clear();
+    _filteredWards = List.from(wards);
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                // Search field at the top
+                TextField(
+                  controller: _wardSearchController,
+                  decoration: InputDecoration(
+                    hintText: 'Search floor/ward...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: _wardSearchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _wardSearchController.clear();
+                              setModalState(() {
+                                _filteredWards = List.from(wards);
+                              });
+                            },
+                          )
+                        : const SizedBox.shrink(),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF1F3F6),
+                  ),
+                  onChanged: (value) {
+                    setModalState(() {
+                      if (value.isEmpty) {
+                        _filteredWards = List.from(wards);
+                      } else {
+                        _filteredWards = wards.where((ward) {
+                          final displayTitle = apiText(
+                            ward.title,
+                            ward.titlek,
+                            ward.titlem,
+                            globalLang,
+                          );
+                          return displayTitle.toLowerCase().contains(value.toLowerCase());
+                        }).toList();
+                      }
+                    });
+                  },
+                ),
+                const SizedBox(height: 16),
+                // Filtered list
+                Expanded(
+                  child: _filteredWards.isEmpty
+                      ? Center(
+                          child: Text(
+                            'No results found',
+                            style: TextStyle(color: Colors.grey[600]),
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: _filteredWards.length,
+                          itemBuilder: (context, index) {
+                            final ward = _filteredWards[index];
+                            final displayTitle = apiText(
+                              ward.title,
+                              ward.titlek,
+                              ward.titlem,
+                              globalLang,
+                            );
+                            final isSelected = selectedWard == ward.title;
+                            return ListTile(
+                              leading: const Icon(Icons.local_hospital),
+                              title: Text(displayTitle),
+                              selected: isSelected,
+                              selectedTileColor: efeedorBrandGreen.withOpacity(0.1),
+                              onTap: () {
+                                setState(() {
+                                  selectedWard = ward.title;
+                                });
+                                _loadBedNumbers(ward.title);
+                                if (_hasValidatedOnce &&
+                                    _wardFieldKey.currentState != null) {
+                                  _wardFieldKey.currentState!.validate();
+                                }
+                                Navigator.pop(context);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -490,38 +673,38 @@ class _IPDischargePatientInfoPageState
                       ),
                     ),
                   )
-                : LayoutBuilder(
-                    builder: (context, constraints) {
-                      return TextFormField(
-                        key: _roomBedFieldKey,
-                        controller:
-                            TextEditingController(text: selectedRoomBed),
-                        onChanged: (value) {
-                          setState(() {
-                            selectedRoomBed = value;
-                          });
-
-                          if (_hasValidatedOnce &&
-                              _roomBedFieldKey.currentState != null) {
+                : TextFormField(
+                    key: _roomBedFieldKey,
+                    controller: _roomBedController,
+                    onChanged: (value) {
+                      // Update selectedRoomBed without calling setState
+                      // This prevents focus loss during continuous typing
+                      selectedRoomBed = value;
+                      
+                      // Only validate if validation has been attempted
+                      // Use SchedulerBinding to defer validation to avoid rebuild during typing
+                      if (_hasValidatedOnce &&
+                          _roomBedFieldKey.currentState != null) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (mounted && _roomBedFieldKey.currentState != null) {
                             _roomBedFieldKey.currentState!.validate();
                           }
-                        },
-                        decoration: inputDecoration(
-                          context.opTranslate('enter_room_bed_number'),
-                        ).copyWith(
-                          prefixIcon: const Icon(Icons.bed),
-                        ),
-                        keyboardType: TextInputType.number,
-                        maxLength: 4,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly
-                        ],
-                        validator: (value) =>
-                            (value == null || value.trim().isEmpty)
-                                ? context.opTranslate('room_bed_required')
-                                : null,
-                      );
+                        });
+                      }
                     },
+                    decoration: inputDecoration(
+                      context.opTranslate('enter_room_bed_number'),
+                    ).copyWith(
+                      prefixIcon: const Icon(Icons.bed),
+                    ),
+                    keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly
+                    ],
+                    validator: (value) =>
+                        (value == null || value.trim().isEmpty)
+                            ? context.opTranslate('room_bed_required')
+                            : null,
                   ),
         const SizedBox(height: 16),
       ],
