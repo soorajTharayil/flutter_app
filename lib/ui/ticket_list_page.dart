@@ -195,6 +195,9 @@ class _TicketListPageState extends State<TicketListPage> {
           ticketId: ticket.ticketId,
           module: widget.moduleCode,
           uid: _uid,
+          patientName: ticket.patientName,
+          patientId: ticket.patientId,
+          patientMobile: ticket.patientMobile,
         ),
       ),
     );

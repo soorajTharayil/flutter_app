@@ -11,12 +11,18 @@ class ManageTicketPage extends StatefulWidget {
   final String ticketId;
   final String module;
   final String? uid;
+  final String? patientName;
+  final String? patientId;
+  final String? patientMobile;
 
   const ManageTicketPage({
     Key? key,
     required this.ticketId,
     required this.module,
     this.uid,
+    this.patientName,
+    this.patientId,
+    this.patientMobile,
   }) : super(key: key);
 
   @override
@@ -59,18 +65,59 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
       );
 
       if (mounted) {
+        // Merge API data with passed navigation arguments
+        // API data takes precedence, but use passed data as fallback
+        final apiDetail = response.ticketDetail;
+        final mergedDetail = TicketDetail(
+          ticketId: apiDetail.ticketId,
+          status: apiDetail.status,
+          createdOn: apiDetail.createdOn,
+          reasonText: apiDetail.reasonText,
+          departmentName: apiDetail.departmentName,
+          departDesc: apiDetail.departDesc,
+          ward: apiDetail.ward,
+          rating: apiDetail.rating,
+          patientName: apiDetail.patientName?.isNotEmpty == true 
+              ? apiDetail.patientName 
+              : widget.patientName,
+          patientId: apiDetail.patientId?.isNotEmpty == true 
+              ? apiDetail.patientId 
+              : widget.patientId,
+          patientMobile: apiDetail.patientMobile?.isNotEmpty == true 
+              ? apiDetail.patientMobile 
+              : widget.patientMobile,
+          floor: apiDetail.floor,
+        );
+        
         setState(() {
-          _ticketDetail = response.ticketDetail;
-          _selectedStatus = response.ticketDetail.status ?? 'Open';
+          _ticketDetail = mergedDetail;
+          _selectedStatus = mergedDetail.status ?? 'Open';
           _isLoading = false;
         });
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _errorMessage = e.toString().replaceAll('Exception: ', '');
-          _isLoading = false;
-        });
+        // On API failure, use passed data if available to show patient details
+        if (widget.patientName != null || widget.patientId != null || widget.patientMobile != null) {
+          final fallbackDetail = TicketDetail(
+            ticketId: widget.ticketId,
+            patientName: widget.patientName,
+            patientId: widget.patientId,
+            patientMobile: widget.patientMobile,
+            status: 'Open',
+          );
+          setState(() {
+            _ticketDetail = fallbackDetail;
+            _selectedStatus = 'Open';
+            _isLoading = false;
+            _errorMessage = e.toString().replaceAll('Exception: ', '');
+          });
+        } else {
+          setState(() {
+            _errorMessage = e.toString().replaceAll('Exception: ', '');
+            _isLoading = false;
+          });
+        }
       }
     }
   }
@@ -118,23 +165,30 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     return '-';
   }
 
-  /// Get patient details text
-  String _getPatientDetailsText() {
-    if (_ticketDetail == null) return '-';
+  /// Get patient name with ID text
+  String _getPatientNameWithId() {
+    if (_ticketDetail == null) return '--';
     
     final name = _ticketDetail!.patientName ?? '';
-    final mobile = _ticketDetail!.patientMobile ?? '';
     final patientId = _ticketDetail!.patientId ?? '';
     
-    if (name.isEmpty && mobile.isEmpty && patientId.isEmpty) {
-      return '-';
+    if (name.isEmpty && patientId.isEmpty) {
+      return '--';
     }
     
-    final displayId = patientId.isNotEmpty ? patientId : mobile;
-    if (name.isNotEmpty && displayId.isNotEmpty) {
-      return '$name ($displayId)';
+    if (name.isNotEmpty && patientId.isNotEmpty) {
+      return '$name ($patientId)';
     }
-    return name.isNotEmpty ? name : displayId;
+    
+    return name.isNotEmpty ? name : patientId;
+  }
+
+  /// Get patient mobile text
+  String _getPatientMobile() {
+    if (_ticketDetail == null) return '--';
+    return _ticketDetail!.patientMobile?.isNotEmpty == true 
+        ? _ticketDetail!.patientMobile! 
+        : '--';
   }
 
   /// Get ward/floor info
@@ -318,10 +372,18 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              _getPatientDetailsText(),
+                                              _getPatientNameWithId(),
                                               style: const TextStyle(
                                                 fontSize: 14,
                                                 color: Colors.black87,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Mobile: ${_getPatientMobile()}',
+                                              style: TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.grey[700],
                                               ),
                                             ),
                                             if (_getWardFloorInfo().isNotEmpty) ...[
@@ -332,27 +394,6 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                                   fontSize: 13,
                                                   color: Colors.grey[700],
                                                 ),
-                                              ),
-                                            ],
-                                            if (_ticketDetail!.patientMobile != null &&
-                                                _ticketDetail!.patientMobile!.isNotEmpty) ...[
-                                              const SizedBox(height: 4),
-                                              Row(
-                                                children: [
-                                                  Icon(
-                                                    Icons.phone,
-                                                    size: 14,
-                                                    color: Colors.grey[600],
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    _ticketDetail!.patientMobile!,
-                                                    style: TextStyle(
-                                                      fontSize: 13,
-                                                      color: Colors.grey[700],
-                                                    ),
-                                                  ),
-                                                ],
                                               ),
                                             ],
                                           ],
@@ -421,26 +462,6 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                   ),
                                 ),
                               ),
-              ),
-              
-              // Back button at bottom left
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: ElevatedButton(
-                    onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
-                    child: const Text('Back'),
-                  ),
-                ),
               ),
             ],
           ),

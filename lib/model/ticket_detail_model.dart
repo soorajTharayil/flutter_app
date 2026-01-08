@@ -29,19 +29,34 @@ class TicketDetail {
   });
 
   factory TicketDetail.fromJson(Map<String, dynamic> json) {
-    // Extract patient details
+    // Extract patient details - handle multiple possible field structures
     String? patientName;
     String? patientMobile;
     String? patientId;
+    
+    // Check for nested patient object (with typo 'patinet')
     if (json['patinet'] != null && json['patinet'] is Map) {
       final patinet = json['patinet'] as Map<String, dynamic>;
-      patientName = patinet['name']?.toString();
-      patientMobile = patinet['patient_mobile']?.toString() ?? patinet['mobile']?.toString();
-      patientId = patinet['patient_id']?.toString();
-    } else {
-      patientName = json['patient_name']?.toString();
-      patientMobile = json['patient_mobile']?.toString();
-      patientId = json['patient_id']?.toString();
+      patientName = patinet['name']?.toString() ?? patinet['patient_name']?.toString();
+      patientMobile = patinet['patient_mobile']?.toString() ?? 
+                      patinet['mobile']?.toString() ?? 
+                      patinet['patientMobile']?.toString();
+      patientId = patinet['patient_id']?.toString() ?? patinet['patientId']?.toString();
+    } 
+    // Check for nested patient object (correct spelling)
+    else if (json['patient'] != null && json['patient'] is Map) {
+      final patient = json['patient'] as Map<String, dynamic>;
+      patientName = patient['name']?.toString() ?? patient['patient_name']?.toString();
+      patientMobile = patient['patient_mobile']?.toString() ?? 
+                      patient['mobile']?.toString() ?? 
+                      patient['patientMobile']?.toString();
+      patientId = patient['patient_id']?.toString() ?? patient['patientId']?.toString();
+    }
+    // Check for direct fields (snake_case and camelCase)
+    else {
+      patientName = json['patient_name']?.toString() ?? json['patientName']?.toString();
+      patientMobile = json['patient_mobile']?.toString() ?? json['patientMobile']?.toString();
+      patientId = json['patient_id']?.toString() ?? json['patientId']?.toString();
     }
 
     return TicketDetail(

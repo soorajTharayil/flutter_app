@@ -3,6 +3,7 @@ class Ticket {
   final String ticketId;
   final String? patientName;
   final String? patientId;
+  final String? patientMobile;
   final String? concern;
   final String? department;
   final String? createdOn;
@@ -13,6 +14,7 @@ class Ticket {
     required this.ticketId,
     this.patientName,
     this.patientId,
+    this.patientMobile,
     this.concern,
     this.department,
     this.createdOn,
@@ -36,10 +38,19 @@ class Ticket {
     // Extract patient details from patinet object (note: backend typo)
     String? patientName;
     String? patientId;
+    String? patientMobile;
     if (json['patinet'] != null && json['patinet'] is Map) {
       final patinet = json['patinet'] as Map<String, dynamic>;
       patientName = patinet['name']?.toString();
       patientId = patinet['patient_id']?.toString();
+      patientMobile = patinet['patient_mobile']?.toString() ?? 
+                      patinet['mobile']?.toString() ?? 
+                      patinet['patientMobile']?.toString();
+    } else {
+      // Check for direct fields as fallback
+      patientName = json['patient_name']?.toString() ?? json['patientName']?.toString();
+      patientId = json['patient_id']?.toString() ?? json['patientId']?.toString();
+      patientMobile = json['patient_mobile']?.toString() ?? json['patientMobile']?.toString();
     }
 
     // Extract concern
@@ -78,6 +89,7 @@ class Ticket {
       ticketId: ticketId,
       patientName: patientName,
       patientId: patientId,
+      patientMobile: patientMobile,
       concern: concern,
       department: department,
       createdOn: createdOn,
