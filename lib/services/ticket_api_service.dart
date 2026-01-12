@@ -172,5 +172,137 @@ class TicketApiService {
       throw Exception('API error: ${response.statusCode} - ${response.body}');
     }
   }
+
+  /// Save ticket details (Address, Close, Transfer)
+  /// 
+  /// [domain] - The domain subdomain (e.g., "hospital1")
+  /// [module] - Module code (IP, OP, PCF, ISR, INCIDENT)
+  /// [ticketId] - Ticket ID
+  /// [status] - Status (Address, Closed, Transfer, Reopen)
+  /// [uid] - User ID
+  /// [message] - Message for Addressed status (optional)
+  /// [rca] - RCA for Closed status (optional)
+  /// [capa] - CAPA for Closed status (optional)
+  /// [departmentId] - Department ID for Transfer status (optional)
+  /// [reason] - Reason for Transfer status (optional)
+  /// 
+  /// Returns Map with success status and message
+  static Future<Map<String, dynamic>> saveTicketDetails({
+    required String domain,
+    required String module,
+    required String ticketId,
+    required String status,
+    required String uid,
+    String? message,
+    String? rca,
+    String? capa,
+    String? departmentId,
+    String? reason,
+  }) async {
+    // Build URL
+    final apiUrl = 'https://$domain.efeedor.com/api/save-ticket-details.php';
+    final uri = Uri.parse(apiUrl);
+
+    // Prepare request payload
+    final payload = <String, dynamic>{
+      'module': module,
+      'ticketId': ticketId,
+      'status': status,
+      'uid': uid,
+    };
+
+    // Add optional fields based on status
+    if (message != null && message.isNotEmpty) {
+      payload['message'] = message;
+      payload['addressDetails'] = message; // Support both field names
+    }
+    if (rca != null && rca.isNotEmpty) {
+      payload['rca'] = rca;
+    }
+    if (capa != null && capa.isNotEmpty) {
+      payload['capa'] = capa;
+    }
+    if (departmentId != null && departmentId.isNotEmpty) {
+      payload['departmentId'] = departmentId;
+    }
+    if (reason != null && reason.isNotEmpty) {
+      payload['reason'] = reason;
+    }
+
+    final body = jsonEncode(payload);
+
+    // DEBUG: Log API call details
+    print('🔵 [DEBUG] ========================================');
+    print('🔵 [DEBUG] SAVE TICKET DETAILS API CALL');
+    print('🔵 [DEBUG] ========================================');
+    print('🔵 [DEBUG] API URL: $apiUrl');
+    print('🔵 [DEBUG] Method: POST');
+    print('🔵 [DEBUG] Headers: Content-Type: application/json');
+    print('🔵 [DEBUG] Payload: $body');
+    print('🔵 [DEBUG] Payload (formatted):');
+    try {
+      final formattedPayload = jsonDecode(body);
+      print('🔵 [DEBUG] ${jsonEncode(formattedPayload)}');
+    } catch (e) {
+      print('🔵 [DEBUG] Error formatting payload: $e');
+    }
+    print('🔵 [DEBUG] ========================================');
+
+    try {
+      // Make POST request
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: body,
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          print('🔴 [DEBUG] Request timeout after 20 seconds');
+          throw Exception('Request timeout');
+        },
+      );
+
+      // DEBUG: Log response details
+      print('🟢 [DEBUG] ========================================');
+      print('🟢 [DEBUG] API RESPONSE RECEIVED');
+      print('🟢 [DEBUG] ========================================');
+      print('🟢 [DEBUG] Status Code: ${response.statusCode}');
+      print('🟢 [DEBUG] Response Headers: ${response.headers}');
+      print('🟢 [DEBUG] Response Body (raw): ${response.body}');
+      print('🟢 [DEBUG] Response Body Length: ${response.body.length}');
+      print('🟢 [DEBUG] ========================================');
+
+      // Check response status
+      if (response.statusCode == 200) {
+        try {
+          final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+          print('🟢 [DEBUG] Parsed Response: $responseData');
+          print('🟢 [DEBUG] Success: ${responseData['success']}');
+          print('🟢 [DEBUG] Message: ${responseData['message'] ?? responseData['error']}');
+          
+          return responseData;
+        } catch (e) {
+          print('🔴 [DEBUG] Failed to parse JSON response: $e');
+          print('🔴 [DEBUG] Response body was: ${response.body}');
+          throw Exception('Failed to parse response: $e');
+        }
+      } else {
+        print('🔴 [DEBUG] API returned non-200 status: ${response.statusCode}');
+        print('🔴 [DEBUG] Response body: ${response.body}');
+        throw Exception('API error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('🔴 [DEBUG] ========================================');
+      print('🔴 [DEBUG] API CALL FAILED');
+      print('🔴 [DEBUG] ========================================');
+      print('🔴 [DEBUG] Error Type: ${e.runtimeType}');
+      print('🔴 [DEBUG] Error Message: $e');
+      if (e is Exception) {
+        print('🔴 [DEBUG] Exception Details: ${e.toString()}');
+      }
+      print('🔴 [DEBUG] ========================================');
+      rethrow;
+    }
+  }
 }
 

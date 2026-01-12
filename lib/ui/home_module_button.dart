@@ -10,6 +10,7 @@ import 'package:devkitflutter/ui/access_web_dashbaord.dart';
 import 'package:devkitflutter/ui/share_page.dart';
 import 'package:devkitflutter/ui/about.dart';
 import 'package:devkitflutter/ui/ticket_dashboard_page.dart';
+import 'package:devkitflutter/ui/user_activity_dashboard_page.dart';
 import 'package:devkitflutter/config/constant.dart';
 import 'package:devkitflutter/widgets/app_header_wrapper.dart';
 import 'package:devkitflutter/widgets/hospital_logo_widget.dart';
@@ -358,8 +359,12 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _userActivity() {
-    // TODO: Implement user activity functionality
-    Fluttertoast.showToast(msg: "User Activity - Coming Soon");
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const UserActivityDashboardPage(),
+      ),
+    );
   }
 
   void _openMenuBottomSheet() {
