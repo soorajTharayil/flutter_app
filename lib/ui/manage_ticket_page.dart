@@ -231,13 +231,31 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     return 'From $department';
   }
 
-  /// Normalize status value (map "Close" to "Closed" for consistency)
+  /// Normalize status value (map UI values to canonical database values)
   String _normalizeStatus(String? status) {
     if (status == null || status.isEmpty) {
       return 'Open';
     }
+    
+    final statusUpper = status.toUpperCase().trim();
+    
     // Normalize "Close" to "Closed" for consistency
-    return status.toUpperCase() == 'CLOSE' ? 'Closed' : status;
+    if (statusUpper == 'CLOSE') {
+      return 'Closed';
+    }
+    
+    // Normalize "Address" to "Addressed" (canonical database value)
+    if (statusUpper == 'ADDRESS') {
+      return 'Addressed';
+    }
+    
+    // Normalize "Transfer" to "Transfered" (canonical database value)
+    if (statusUpper == 'TRANSFER') {
+      return 'Transfered';
+    }
+    
+    // Return unchanged for all other values
+    return status;
   }
 
   /// Check if ticket is currently in closed state
@@ -270,6 +288,8 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
         // Normalize "Close" to "Closed" for consistency
         _selectedStatus = 'Closed';
       } else {
+        // Keep the selected value as-is (Address/Transfer) for UI display
+        // The normalization happens when loading from database
         _selectedStatus = newStatus;
       }
     });
@@ -301,10 +321,10 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
 
   /// Check if Transfer section should be visible
   bool _shouldShowTransferSection() {
-    // Only show if user has changed status to Transfer/Transferred
+    // Only show if user has changed status to Transfer/Transfered
     if (!_hasUserChangedStatus) return false;
     final statusUpper = _selectedStatus.toUpperCase();
-    return statusUpper == 'TRANSFER' || statusUpper == 'TRANSFERRED';
+    return statusUpper == 'TRANSFER' || statusUpper == 'TRANSFERED';
   }
 
   /// Build Address section
@@ -577,12 +597,12 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     }
 
     print('🟡 [DEBUG] Message: $message');
-    print('🟡 [DEBUG] Status: Address');
+    print('🟡 [DEBUG] Status: Addressed');
     print('🟡 [DEBUG] Ticket ID: ${widget.ticketId}');
     print('🟡 [DEBUG] Module: ${widget.module}');
 
     await _submitTicketDetails(
-      status: 'Address',
+      status: 'Addressed',
       message: message,
     );
   }
@@ -608,6 +628,18 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
       print('🔴 [DEBUG] Validation failed: CAPA is empty');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter CAPA')),
+      );
+      return;
+    }
+
+    // Validate minimum character length (25 characters)
+    if (rca.length < 25 || capa.length < 25) {
+      print('🔴 [DEBUG] Validation failed: RCA or CAPA has less than 25 characters');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter at least 25 characters for RCA and CAPA.'),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -651,12 +683,12 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
 
     print('🟡 [DEBUG] Department ID: $_selectedDepartmentId');
     print('🟡 [DEBUG] Reason: $reason');
-    print('🟡 [DEBUG] Status: Transfer');
+    print('🟡 [DEBUG] Status: Transfered');
     print('🟡 [DEBUG] Ticket ID: ${widget.ticketId}');
     print('🟡 [DEBUG] Module: ${widget.module}');
 
     await _submitTicketDetails(
-      status: 'Transfer',
+      status: 'Transfered',
       departmentId: _selectedDepartmentId,
       reason: reason,
     );
