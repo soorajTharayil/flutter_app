@@ -33,6 +33,7 @@ class _TicketListPageState extends State<TicketListPage> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _uid;
+  bool _hasLoadedOnce = false;
 
   @override
   void initState() {
@@ -60,11 +61,17 @@ class _TicketListPageState extends State<TicketListPage> {
   }
 
   /// Convert filterType to API status
+  /// Note: Backend might be case-sensitive, so we try to match what's in the database
+  /// Dashboard counts use the same logic, so we should match that
   String _getStatusFromFilterType() {
     switch (widget.filterType.toUpperCase()) {
       case 'OPEN':
+        // Try uppercase first (as per API documentation)
         return 'OPEN';
       case 'CLOSED':
+        // Backend saves as "Closed" (title case), but API might expect "CLOSED" (uppercase)
+        // If uppercase doesn't work, backend might need "Closed" - but we can't change backend
+        // So we'll send "CLOSED" and let debug logs show if it's wrong
         return 'CLOSED';
       case 'TOTAL':
       default:
@@ -73,9 +80,16 @@ class _TicketListPageState extends State<TicketListPage> {
   }
 
   /// Fetch tickets from API
-  Future<void> _fetchTickets() async {
+  Future<void> _fetchTickets({bool forceRefresh = false}) async {
     if (_uid == null || _uid!.isEmpty) {
       return;
+    }
+
+    // Clear previous data if forcing refresh
+    if (forceRefresh) {
+      setState(() {
+        _ticketListResponse = null;
+      });
     }
 
     setState(() {
@@ -95,6 +109,17 @@ class _TicketListPageState extends State<TicketListPage> {
       // Get status from filter type
       final status = _getStatusFromFilterType();
 
+      print('🔵 [DEBUG] ========================================');
+      print('🔵 [DEBUG] FETCHING TICKETS FROM API');
+      print('🔵 [DEBUG] Domain: $domain');
+      print('🔵 [DEBUG] Module: ${widget.moduleCode}');
+      print('🔵 [DEBUG] Status Filter: $status');
+      print('🔵 [DEBUG] Filter Type: ${widget.filterType}');
+      print('🔵 [DEBUG] From Date: ${widget.fromDate}');
+      print('🔵 [DEBUG] To Date: ${widget.toDate}');
+      print('🔵 [DEBUG] Force Refresh: $forceRefresh');
+      print('🔵 [DEBUG] ========================================');
+
       // Fetch tickets
       final response = await TicketApiService.fetchAllTickets(
         domain: domain,
@@ -105,10 +130,27 @@ class _TicketListPageState extends State<TicketListPage> {
         toDate: widget.toDate,
       );
 
+      print('🟢 [DEBUG] ========================================');
+      print('🟢 [DEBUG] API RESPONSE RECEIVED');
+      print('🟢 [DEBUG] Ticket Count: ${response.ticketCount}');
+      print('🟢 [DEBUG] Section: ${response.section}');
+      print('🟢 [DEBUG] Module: ${response.module}');
+      if (response.tickets.isNotEmpty) {
+        print('🟢 [DEBUG] Sample ticket statuses:');
+        for (var i = 0; i < response.tickets.length && i < 5; i++) {
+          final ticket = response.tickets[i];
+          print('🟢 [DEBUG]   Ticket ${ticket.ticketId}: status="${ticket.status}"');
+        }
+      } else {
+        print('🟢 [DEBUG] No tickets returned');
+      }
+      print('🟢 [DEBUG] ========================================');
+
       if (mounted) {
         setState(() {
           _ticketListResponse = response;
           _isLoading = false;
+          _hasLoadedOnce = true;
         });
       }
     } catch (e) {
@@ -187,8 +229,9 @@ class _TicketListPageState extends State<TicketListPage> {
   }
 
   /// Navigate to manage ticket page
-  void _navigateToAction(Ticket ticket) {
-    Navigator.push(
+  void _navigateToAction(Ticket ticket) async {
+    // Navigate to Manage Ticket page
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => ManageTicketPage(
@@ -201,6 +244,25 @@ class _TicketListPageState extends State<TicketListPage> {
         ),
       ),
     );
+    
+    // Always refresh ticket list when returning from Manage Ticket page
+    // This ensures status changes (like closing a ticket) are reflected immediately
+    if (mounted) {
+      print('🟢 [DEBUG] ========================================');
+      print('🟢 [DEBUG] RETURNED FROM MANAGE TICKET PAGE');
+      print('🟢 [DEBUG] Filter Type: ${widget.filterType}');
+      print('🟢 [DEBUG] Module: ${widget.moduleCode}');
+      print('🟢 [DEBUG] Waiting 500ms for DB update to complete...');
+      print('🟢 [DEBUG] ========================================');
+      
+      // Small delay to ensure database update is complete
+      await Future.delayed(const Duration(milliseconds: 500));
+      
+      // Force refresh the ticket list
+      print('🟢 [DEBUG] Starting forced refresh...');
+      await _fetchTickets(forceRefresh: true);
+      print('🟢 [DEBUG] Refresh complete');
+    }
   }
 
   /// Build ticket card
@@ -418,7 +480,7 @@ class _TicketListPageState extends State<TicketListPage> {
                               ),
                               const SizedBox(height: 16),
                               ElevatedButton(
-                                onPressed: _fetchTickets,
+                                onPressed: () => _fetchTickets(forceRefresh: true),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: efeedorBrandGreen,
                                   foregroundColor: Colors.white,
@@ -431,34 +493,48 @@ class _TicketListPageState extends State<TicketListPage> {
                       )
                     : _ticketListResponse == null ||
                             _ticketListResponse!.ticketCount == 0
-                        ? Center(
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.inbox,
-                                  size: 64,
-                                  color: Colors.grey[400],
-                                ),
-                                const SizedBox(height: 16),
-                                Text(
-                                  'No tickets found for this period',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey[600],
+                        ? RefreshIndicator(
+                            onRefresh: () => _fetchTickets(forceRefresh: true),
+                            color: efeedorBrandGreen,
+                            child: SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: SizedBox(
+                                height: MediaQuery.of(context).size.height * 0.5,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.inbox,
+                                        size: 64,
+                                        color: Colors.grey[400],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'No tickets found for this period',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey[600],
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
                           )
-                        : ListView.builder(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            itemCount: _ticketListResponse!.tickets.length,
-                            itemBuilder: (context, index) {
-                              return _buildTicketCard(
-                                _ticketListResponse!.tickets[index],
-                              );
-                            },
+                        : RefreshIndicator(
+                            onRefresh: () => _fetchTickets(forceRefresh: true),
+                            color: efeedorBrandGreen,
+                            child: ListView.builder(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              itemCount: _ticketListResponse!.tickets.length,
+                              itemBuilder: (context, index) {
+                                return _buildTicketCard(
+                                  _ticketListResponse!.tickets[index],
+                                );
+                              },
+                            ),
                           ),
           ),
         ],

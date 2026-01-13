@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constant.dart';
 import '../widgets/app_header_wrapper.dart';
 
@@ -140,11 +143,209 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
     return 'Date range: ${_formatDate(fromDate)} - ${_formatDate(toDate)}';
   }
 
+  /// Preload ward/department APIs on page load
+  Future<void> _preloadWardDepartmentApis() async {
+    try {
+      // Get domain from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final domain = prefs.getString('domain') ?? '';
+      final uid = prefs.getString('userid') ?? '';
+
+      if (domain.isEmpty) {
+        print('🔴 [USER ACTIVITY] Domain not found, skipping API preload');
+        return;
+      }
+
+      print('🔵 [USER ACTIVITY] ========================================');
+      print('🔵 [USER ACTIVITY] PRELOADING WARD/DEPARTMENT APIS');
+      print('🔵 [USER ACTIVITY] Domain: $domain');
+      print('🔵 [USER ACTIVITY] ========================================');
+
+      // Call all 5 APIs in parallel for better performance
+      await Future.wait([
+        _callWardApi(domain, uid),
+        _callDepartmentApi(domain, uid),
+        _callWard2Api(domain, uid),
+        _callEsrWardApi(domain, uid),
+        _callIncidentWardsApi(domain, uid),
+      ], eagerError: false); // Don't fail all if one fails
+
+      print('🟢 [USER ACTIVITY] ========================================');
+      print('🟢 [USER ACTIVITY] ALL API PRELOADS COMPLETED');
+      print('🟢 [USER ACTIVITY] ========================================');
+    } catch (e) {
+      print('🔴 [USER ACTIVITY] Error during API preload: $e');
+    }
+  }
+
+  /// Call ward.php API
+  Future<void> _callWardApi(String domain, String uid) async {
+    try {
+      final apiUrl = 'https://$domain.efeedor.com/api/ward.php';
+      final uri = Uri.parse(apiUrl);
+
+      print('🔵 [USER ACTIVITY] Calling ward.php...');
+
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'uid': uid,
+        }),
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          print('🔴 [USER ACTIVITY] ward.php timeout');
+          throw Exception('Request timeout');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('🟢 [USER ACTIVITY] ward.php success');
+      } else {
+        print('🔴 [USER ACTIVITY] ward.php failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('🔴 [USER ACTIVITY] ward.php error: $e');
+    }
+  }
+
+  /// Call department.php API
+  Future<void> _callDepartmentApi(String domain, String uid) async {
+    try {
+      final apiUrl = 'https://$domain.efeedor.com/api/department.php';
+      final uri = Uri.parse(apiUrl);
+
+      print('🔵 [USER ACTIVITY] Calling department.php...');
+
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'uid': uid,
+        }),
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          print('🔴 [USER ACTIVITY] department.php timeout');
+          throw Exception('Request timeout');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('🟢 [USER ACTIVITY] department.php success');
+      } else {
+        print('🔴 [USER ACTIVITY] department.php failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('🔴 [USER ACTIVITY] department.php error: $e');
+    }
+  }
+
+  /// Call ward2.php API
+  Future<void> _callWard2Api(String domain, String uid) async {
+    try {
+      final apiUrl = 'https://$domain.efeedor.com/api/ward2.php';
+      final uri = Uri.parse(apiUrl);
+
+      print('🔵 [USER ACTIVITY] Calling ward2.php...');
+
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'uid': uid,
+        }),
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          print('🔴 [USER ACTIVITY] ward2.php timeout');
+          throw Exception('Request timeout');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('🟢 [USER ACTIVITY] ward2.php success');
+      } else {
+        print('🔴 [USER ACTIVITY] ward2.php failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('🔴 [USER ACTIVITY] ward2.php error: $e');
+    }
+  }
+
+  /// Call esr_wards.php API
+  Future<void> _callEsrWardApi(String domain, String uid) async {
+    try {
+      final apiUrl = 'https://$domain.efeedor.com/api/esr_wards.php';
+      final uri = Uri.parse(apiUrl);
+
+      print('🔵 [USER ACTIVITY] Calling esr_wards.php...');
+
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'uid': uid,
+        }),
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          print('🔴 [USER ACTIVITY] esr_wards.php timeout');
+          throw Exception('Request timeout');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('🟢 [USER ACTIVITY] esr_wards.php success');
+      } else {
+        print('🔴 [USER ACTIVITY] esr_wards.php failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('🔴 [USER ACTIVITY] esr_wards.php error: $e');
+    }
+  }
+
+  /// Call incident_wards.php API
+  Future<void> _callIncidentWardsApi(String domain, String uid) async {
+    try {
+      final apiUrl = 'https://$domain.efeedor.com/api/incident_wards.php';
+      final uri = Uri.parse(apiUrl);
+
+      print('🔵 [USER ACTIVITY] Calling incident_wards.php...');
+
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'uid': uid,
+        }),
+      ).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          print('🔴 [USER ACTIVITY] incident_wards.php timeout');
+          throw Exception('Request timeout');
+        },
+      );
+
+      if (response.statusCode == 200) {
+        print('🟢 [USER ACTIVITY] incident_wards.php success');
+      } else {
+        print('🔴 [USER ACTIVITY] incident_wards.php failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('🔴 [USER ACTIVITY] incident_wards.php error: $e');
+    }
+  }
+
   /// Fetch activity data from API (placeholder for now)
   Future<void> _fetchActivityData() async {
     setState(() {
       _isLoading = true;
     });
+
+    // Preload ward/department APIs
+    await _preloadWardDepartmentApis();
 
     // TODO: Replace with actual API call
     // For now, using placeholder data
@@ -600,14 +801,23 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
   Widget _buildSectionHeader(String title) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: Colors.grey[200],
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      margin: const EdgeInsets.only(top: 16, bottom: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        border: Border(
+          left: BorderSide(
+            color: efeedorBrandGreen,
+            width: 4,
+          ),
+        ),
+      ),
       child: Text(
         title,
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
-          color: Colors.black87,
+          color: Colors.grey[800],
           letterSpacing: 0.5,
         ),
       ),
@@ -624,68 +834,103 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
       opacity: _fadeAnimation.value > 0 ? _fadeAnimation.value : 1.0,
       child: Container(
         width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        constraints: const BoxConstraints(
+          minHeight: 80,
+        ),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
+          borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
+              color: Colors.black.withOpacity(0.08),
+              blurRadius: 8,
               offset: const Offset(0, 2),
+              spreadRadius: 0,
             ),
           ],
         ),
         child: Padding(
           padding: const EdgeInsets.all(16),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              // Left: Count with up arrow
+              // Top row: Count and arrow on left, View List on right
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    count.toString().padLeft(3, '0'),
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
+                  // Left: Count with up arrow
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        count.toString(),
+                        style: const TextStyle(
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black87,
+                          height: 1.0,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Icon(
+                        Icons.arrow_upward,
+                        size: 18,
+                        color: efeedorBrandGreen,
+                      ),
+                    ],
+                  ),
+                  const Spacer(),
+                  // Right: View List button
+                  if (onViewList != null)
+                    InkWell(
+                      onTap: onViewList,
+                      borderRadius: BorderRadius.circular(6),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.grey[100],
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.remove_red_eye,
+                              size: 16,
+                              color: Colors.grey[700],
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'View List',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Icon(
-                    Icons.arrow_upward,
-                    size: 16,
-                    color: efeedorBrandGreen,
-                  ),
                 ],
               ),
-              const Spacer(),
-              // Center: Label
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                    ),
-                  ),
+              const SizedBox(height: 12),
+              // Bottom: Label
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[800],
+                  height: 1.3,
                 ),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
               ),
-              // Right: View List
-              if (onViewList != null)
-                InkWell(
-                  onTap: onViewList,
-                  child: const Text(
-                    'View List',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.black87,
-                      decoration: TextDecoration.underline,
-                    ),
-                  ),
-                ),
             ],
           ),
         ),
@@ -703,41 +948,43 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
           children: [
             // Page Title
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
               child: const Text(
                 'USER ACTIVITY DASHBOARD',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: 22,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
-                  letterSpacing: 0.5,
+                  letterSpacing: 0.3,
                 ),
               ),
             ),
 
-            // Horizontal divider
-            const Divider(
-              height: 1,
-              thickness: 1,
-              color: Colors.grey,
-            ),
-
             // Description text
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               child: Text(
                 'This page gives you a brief summary of your activity across the different tools of Efeedor, highlighting the number of feedbacks, concerns, internal requests, and incidents recorded by you.',
                 style: TextStyle(
                   fontSize: 13,
                   color: Colors.grey[700],
-                  height: 1.4,
+                  height: 1.5,
                 ),
               ),
             ),
 
             // Date filter section
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+            Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey[50],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.grey[200]!,
+                  width: 1,
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -755,14 +1002,18 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            _getPeriodLabel(_selectedPeriod),
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 14,
+                          Expanded(
+                            child: Text(
+                              _getPeriodLabel(_selectedPeriod),
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
+                          const SizedBox(width: 8),
                           const Icon(
                             Icons.keyboard_arrow_down,
                             color: Colors.white,
@@ -777,8 +1028,8 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
                   Text(
                     _getDateRangeDisplay(),
                     style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[700],
+                      fontSize: 12,
+                      color: Colors.grey[600],
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -786,7 +1037,7 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
               ),
             ),
 
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
 
             // Loading state
             if (_isLoading)
@@ -810,7 +1061,6 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
                   // TODO: Navigate to IP Feedbacks list
                 },
               ),
-              const SizedBox(height: 8),
 
               // OP FEEDBACKS Section
               _buildSectionHeader('OP FEEDBACKS'),
@@ -821,7 +1071,6 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
                   // TODO: Navigate to OP Feedbacks list
                 },
               ),
-              const SizedBox(height: 8),
 
               // INPATIENT CONCERNS Section
               _buildSectionHeader('INPATIENT CONCERNS'),
@@ -832,7 +1081,6 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
                   // TODO: Navigate to Concerns list
                 },
               ),
-              const SizedBox(height: 8),
 
               // INTERNAL SERVICE REQUESTS Section
               _buildSectionHeader('INTERNAL SERVICE REQUESTS'),
@@ -864,7 +1112,6 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
                   // TODO: Navigate to Requests resolved list
                 },
               ),
-              const SizedBox(height: 8),
 
               // INCIDENTS Section
               _buildSectionHeader('INCIDENTS'),

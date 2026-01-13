@@ -5,6 +5,10 @@ import '../widgets/app_header_wrapper.dart';
 import '../config/constant.dart';
 import '../services/ticket_api_service.dart';
 import '../model/ticket_detail_model.dart';
+import '../services/ip_question_service.dart';
+import '../services/department_service.dart';
+import '../model/op_question_model.dart';
+import '../model/department_model.dart';
 
 /// Page for managing individual ticket details
 class ManageTicketPage extends StatefulWidget {
@@ -43,6 +47,8 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
   final TextEditingController _capaController = TextEditingController();
   final TextEditingController _transferReasonController = TextEditingController();
   String? _selectedDepartmentId; // For transfer dropdown
+  List<dynamic> _transferDepartments = []; // For transfer dropdown - QuestionSet for IP, Department for OP
+  bool _isLoadingDepartments = false;
 
   @override
   void initState() {
@@ -324,7 +330,148 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     // Only show if user has changed status to Transfer/Transfered
     if (!_hasUserChangedStatus) return false;
     final statusUpper = _selectedStatus.toUpperCase();
-    return statusUpper == 'TRANSFER' || statusUpper == 'TRANSFERED';
+    if (statusUpper == 'TRANSFER' || statusUpper == 'TRANSFERED') {
+      // Load departments when transfer section becomes visible
+      if (_transferDepartments.isEmpty && !_isLoadingDepartments) {
+        _loadTransferDepartments();
+      }
+      return true;
+    }
+    return false;
+  }
+
+  /// Load transfer departments based on module
+  Future<void> _loadTransferDepartments() async {
+    setState(() {
+      _isLoadingDepartments = true;
+    });
+
+    try {
+      print('🔵 [DEBUG] ========================================');
+      print('🔵 [DEBUG] Loading Transfer Departments');
+      print('🔵 [DEBUG] Module: ${widget.module}');
+      print('🔵 [DEBUG] Status selected: $_selectedStatus');
+      print('🔵 [DEBUG] ========================================');
+
+      if (widget.module == 'IP') {
+        // For IP module, use ward.php question_set
+        final patientMobile = widget.patientMobile ?? '';
+        if (patientMobile.isNotEmpty) {
+          print('🔵 [DEBUG] Calling ward.php for IP module');
+          final questionSets = await fetchIPQuestionSets(patientMobile);
+          
+          print('🔵 [DEBUG] ward.php response question_set count: ${questionSets.length}');
+          print('🔵 [DEBUG] Using question_set for department dropdown: ${questionSets.map((qs) => qs.category).toList()}');
+          
+          setState(() {
+            _transferDepartments = questionSets;
+            _isLoadingDepartments = false;
+          });
+        } else {
+          print('🔴 [DEBUG] Patient mobile is empty for IP module');
+          setState(() {
+            _isLoadingDepartments = false;
+          });
+        }
+      } else if (widget.module == 'OP') {
+        // For OP module, use department.php
+        final patientId = widget.patientId ?? '';
+        if (patientId.isNotEmpty) {
+          print('🔵 [DEBUG] Calling OP department API');
+          print('🔵 [DEBUG] Calling department.php for OP module');
+          final departments = await fetchDepartments(patientId);
+          
+          print('🔵 [DEBUG] department.php response count: ${departments.length}');
+          print('🔵 [DEBUG] department.php response: ${departments.map((d) => d.title).toList()}');
+          
+          setState(() {
+            _transferDepartments = departments;
+            _isLoadingDepartments = false;
+          });
+        } else {
+          print('🔴 [DEBUG] Patient ID is empty for OP module');
+          setState(() {
+            _isLoadingDepartments = false;
+          });
+        }
+      } else if (widget.module == 'PCF') {
+        // For IP Complaints/Requests (PCF), use ward2.php question_set
+        final prefs = await SharedPreferences.getInstance();
+        final uid = prefs.getString('userid') ?? widget.uid ?? '';
+        if (uid.isNotEmpty) {
+          print('🔵 [DEBUG] Calling ward2.php for PCF module');
+          print('🔵 [DEBUG] Using question_set (not ward) for department dropdown');
+          final questionSets = await fetchWard2QuestionSets(uid);
+          
+          print('🔵 [DEBUG] ward2.php question_set count: ${questionSets.length}');
+          print('🔵 [DEBUG] ward2.php question_set categories: ${questionSets.map((qs) => qs.category).toList()}');
+          
+          setState(() {
+            _transferDepartments = questionSets;
+            _isLoadingDepartments = false;
+          });
+        } else {
+          print('🔴 [DEBUG] User ID is empty for PCF module');
+          setState(() {
+            _isLoadingDepartments = false;
+          });
+        }
+      } else if (widget.module == 'ISR') {
+        // For Internal Service Requests (ISR), use esr_wards.php question_set
+        final prefs = await SharedPreferences.getInstance();
+        final uid = prefs.getString('userid') ?? widget.uid ?? '';
+        if (uid.isNotEmpty) {
+          print('🔵 [DEBUG] Calling esr_wards.php for ISR module');
+          print('🔵 [DEBUG] Using question_set (not ward) for department dropdown');
+          final questionSets = await fetchEsrWardsQuestionSets(uid);
+          
+          print('🔵 [DEBUG] esr_wards.php question_set count: ${questionSets.length}');
+          print('🔵 [DEBUG] esr_wards.php question_set categories: ${questionSets.map((qs) => qs.category).toList()}');
+          
+          setState(() {
+            _transferDepartments = questionSets;
+            _isLoadingDepartments = false;
+          });
+        } else {
+          print('🔴 [DEBUG] User ID is empty for ISR module');
+          setState(() {
+            _isLoadingDepartments = false;
+          });
+        }
+      } else if (widget.module == 'INCIDENT') {
+        // For Incidents, use incident_wards.php question_set
+        final prefs = await SharedPreferences.getInstance();
+        final uid = prefs.getString('userid') ?? widget.uid ?? '';
+        if (uid.isNotEmpty) {
+          print('🔵 [DEBUG] Calling incident_wards.php for INCIDENT module');
+          print('🔵 [DEBUG] Using question_set (not ward) for department dropdown');
+          final questionSets = await fetchIncidentWardsQuestionSets(uid);
+          
+          print('🔵 [DEBUG] incident_wards.php question_set count: ${questionSets.length}');
+          print('🔵 [DEBUG] incident_wards.php question_set categories: ${questionSets.map((qs) => qs.category).toList()}');
+          
+          setState(() {
+            _transferDepartments = questionSets;
+            _isLoadingDepartments = false;
+          });
+        } else {
+          print('🔴 [DEBUG] User ID is empty for INCIDENT module');
+          setState(() {
+            _isLoadingDepartments = false;
+          });
+        }
+      } else {
+        print('🔴 [DEBUG] Unknown module: ${widget.module}');
+        setState(() {
+          _isLoadingDepartments = false;
+        });
+      }
+    } catch (e) {
+      print('🔴 [DEBUG] Failed to load transfer departments: $e');
+      setState(() {
+        _isLoadingDepartments = false;
+      });
+    }
   }
 
   /// Build Address section
@@ -510,27 +657,55 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
               ),
             ),
             const SizedBox(height: 8),
-            DropdownButtonFormField<String>(
-              decoration: InputDecoration(
-                hintText: 'Select Department',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                filled: true,
-                fillColor: Colors.grey[50],
-              ),
-              items: const [
-                DropdownMenuItem(value: 'dept1', child: Text('Department 1')),
-                DropdownMenuItem(value: 'dept2', child: Text('Department 2')),
-                DropdownMenuItem(value: 'dept3', child: Text('Department 3')),
-              ],
-              value: _selectedDepartmentId,
-              onChanged: (value) {
-                setState(() {
-                  _selectedDepartmentId = value;
-                });
-              },
-            ),
+            _isLoadingDepartments
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  )
+                : DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    decoration: InputDecoration(
+                      hintText: 'Select Department',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey[50],
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                    ),
+                    items: _transferDepartments.isNotEmpty
+                        ? _transferDepartments.map((dept) {
+                            // Handle both QuestionSet (IP) and Department (OP) models
+                            final title = dept is QuestionSet 
+                                ? dept.category 
+                                : (dept is Department ? dept.title : dept.toString());
+                            final value = dept is QuestionSet 
+                                ? dept.category 
+                                : (dept is Department ? dept.title : title);
+                            
+                            return DropdownMenuItem<String>(
+                              value: value,
+                              child: Text(
+                                title,
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
+                            );
+                          }).toList()
+                        : const [
+                            DropdownMenuItem(value: 'dept1', child: Text('Department 1')),
+                            DropdownMenuItem(value: 'dept2', child: Text('Department 2')),
+                            DropdownMenuItem(value: 'dept3', child: Text('Department 3')),
+                          ],
+                    value: _selectedDepartmentId,
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedDepartmentId = value;
+                      });
+                    },
+                  ),
             const SizedBox(height: 16),
             const Text(
               'Reason for transfer',
@@ -771,6 +946,10 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
           setState(() {
             _selectedDepartmentId = null;
           });
+          
+          // Return true to indicate ticket was updated (for list page refresh)
+          // Don't pop immediately - let user see the updated status
+          // The list will refresh when user navigates back
         } else {
           print('🔴 [DEBUG] API returned success=false');
           final errorMsg = response['error'] ?? response['message'] ?? 'Failed to update ticket';

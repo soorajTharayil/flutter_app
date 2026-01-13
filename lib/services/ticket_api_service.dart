@@ -39,6 +39,14 @@ class TicketApiService {
       'module': moduleCode,
     });
 
+    print('🔵 [DASHBOARD API] ========================================');
+    print('🔵 [DASHBOARD API] URL: $uri');
+    print('🔵 [DASHBOARD API] Module: $moduleCode');
+    print('🔵 [DASHBOARD API] From Date: $fdate');
+    print('🔵 [DASHBOARD API] To Date: $tdate');
+    print('🔵 [DASHBOARD API] Body: $body');
+    print('🔵 [DASHBOARD API] ========================================');
+
     // Make POST request
     final response = await http.post(
       uri,
@@ -50,6 +58,9 @@ class TicketApiService {
         throw Exception('Request timeout');
       },
     );
+
+    print('🟢 [DASHBOARD API] Response Status: ${response.statusCode}');
+    print('🟢 [DASHBOARD API] Response Body: ${response.body}');
 
     // Check response status
     if (response.statusCode == 200) {
@@ -88,8 +99,10 @@ class TicketApiService {
     final tdate = dateFormat.format(toDate);
 
     // Build URL with query parameters
+    // Add timestamp to prevent caching
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
     final uri = Uri.parse(
-      'https://$domain.efeedor.com/api/allTickets.php?fdate=$fdate&tdate=$tdate',
+      'https://$domain.efeedor.com/api/allTickets.php?fdate=$fdate&tdate=$tdate&_t=$timestamp',
     );
 
     // Prepare request body
@@ -99,6 +112,15 @@ class TicketApiService {
       'section': status,
       'status': status,
     });
+
+    print('🔵 [LIST API] ========================================');
+    print('🔵 [LIST API] URL: $uri');
+    print('🔵 [LIST API] Module: $module');
+    print('🔵 [LIST API] Status Filter: $status');
+    print('🔵 [LIST API] From Date: $fdate');
+    print('🔵 [LIST API] To Date: $tdate');
+    print('🔵 [LIST API] Body: $body');
+    print('🔵 [LIST API] ========================================');
 
     // Make POST request
     final response = await http.post(
@@ -111,6 +133,28 @@ class TicketApiService {
         throw Exception('Request timeout');
       },
     );
+
+    print('🟢 [LIST API] Response Status: ${response.statusCode}');
+    if (response.statusCode == 200) {
+      try {
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+        print('🟢 [LIST API] Ticket Count: ${responseData['ticketCount'] ?? 'N/A'}');
+        print('🟢 [LIST API] Section: ${responseData['section'] ?? 'N/A'}');
+        final tickets = responseData['tickets'] as List?;
+        print('🟢 [LIST API] Tickets Returned: ${tickets?.length ?? 0}');
+        if (tickets != null && tickets.isNotEmpty) {
+          print('🟢 [LIST API] Sample ticket statuses:');
+          for (var i = 0; i < tickets.length && i < 3; i++) {
+            final ticket = tickets[i] as Map<String, dynamic>;
+            print('🟢 [LIST API]   Ticket ${ticket['ticketID'] ?? ticket['id']}: status="${ticket['status']}"');
+          }
+        }
+      } catch (e) {
+        print('🔴 [LIST API] Error parsing response: $e');
+      }
+    } else {
+      print('🔴 [LIST API] Error Response: ${response.body}');
+    }
 
     // Check response status
     if (response.statusCode == 200) {
