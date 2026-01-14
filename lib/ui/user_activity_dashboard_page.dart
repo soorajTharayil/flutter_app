@@ -338,37 +338,124 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
     }
   }
 
-  /// Fetch activity data from API (placeholder for now)
+  /// Fetch activity data from existing backend API
+  /// Calls: /view/user_activity_api/{user_id}
   Future<void> _fetchActivityData() async {
     setState(() {
       _isLoading = true;
     });
 
-    // Preload ward/department APIs
-    await _preloadWardDepartmentApis();
+    try {
+      // Get domain and user ID from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final domain = prefs.getString('domain') ?? '';
+      final userId = prefs.getString('userid') ?? '';
 
-    // TODO: Replace with actual API call
-    // For now, using placeholder data
-    await Future.delayed(const Duration(milliseconds: 500));
+      if (domain.isEmpty) {
+        throw Exception('Domain not found. Please login again.');
+      }
 
-    if (mounted) {
-      _fadeController.reset();
-      setState(() {
-        _isLoading = false;
-        // Placeholder counts - replace with actual API response
-        _ipDischargeFeedbacks = 0;
-        _opFeedbacks = 0;
-        _inpatientConcerns = 0;
-        _internalRequestsRaised = 0;
-        _internalRequestsUnaddressed = 0;
-        _internalRequestsAssigned = 0;
-        _internalRequestsResolved = 0;
-        _incidentsReported = 0;
-        _incidentsUnaddressed = 0;
-        _incidentsAssigned = 0;
-      });
-      _fadeController.forward();
+      if (userId.isEmpty) {
+        throw Exception('User ID not found. Please login again.');
+      }
+
+      // Call existing backend API: /view/user_activity_api/{user_id}
+      final apiUrl = 'https://$domain.efeedor.com/view/user_activity_api/$userId';
+      final uri = Uri.parse(apiUrl);
+
+      print('🔵 [USER ACTIVITY] ========================================');
+      print('🔵 [USER ACTIVITY] Calling user_activity_api');
+      print('🔵 [USER ACTIVITY] URL: $apiUrl');
+      print('🔵 [USER ACTIVITY] User ID: $userId');
+      print('🔵 [USER ACTIVITY] ========================================');
+
+      final response = await http.get(uri).timeout(
+        const Duration(seconds: 20),
+        onTimeout: () {
+          throw Exception('Request timeout');
+        },
+      );
+
+      print('🟢 [USER ACTIVITY] Response Status: ${response.statusCode}');
+      print('🟢 [USER ACTIVITY] Response Body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final responseData = jsonDecode(response.body) as Map<String, dynamic>;
+        
+        // Parse JSON response and bind to UI fields
+        if (mounted) {
+          _fadeController.reset();
+          setState(() {
+            _isLoading = false;
+            
+            // Map response data to state variables
+            // Adjust field names based on actual API response structure
+            final data = responseData['data'] ?? responseData;
+            
+            // IP Discharge Feedbacks
+            _ipDischargeFeedbacks = _parseInt(data['ip_discharge_feedbacks']) ?? 
+                                   _parseInt(data['ip_feedback_count']) ?? 0;
+            
+            // OP Feedbacks
+            _opFeedbacks = _parseInt(data['op_feedbacks']) ?? 
+                          _parseInt(data['op_feedback_count']) ?? 0;
+            
+            // Inpatient Concerns
+            _inpatientConcerns = _parseInt(data['inpatient_concerns']) ?? 
+                               _parseInt(data['pc_feedback_count']) ?? 0;
+            
+            // Internal Service Requests (ISR)
+            final isrData = data['internal_requests'] ?? data['isr_tickets'] ?? {};
+            _internalRequestsRaised = _parseInt(isrData['raised']) ?? 
+                                     _parseInt(isrData['all']) ?? 
+                                     _parseInt(data['isr_raised']) ?? 0;
+            _internalRequestsUnaddressed = _parseInt(isrData['unaddressed']) ?? 
+                                          _parseInt(isrData['open']) ?? 
+                                          _parseInt(data['isr_unaddressed']) ?? 0;
+            _internalRequestsAssigned = _parseInt(isrData['assigned']) ?? 
+                                       _parseInt(data['isr_assigned']) ?? 0;
+            _internalRequestsResolved = _parseInt(isrData['resolved']) ?? 
+                                       _parseInt(isrData['closed']) ?? 
+                                       _parseInt(data['isr_resolved']) ?? 0;
+            
+            // Incidents
+            final incidentData = data['incidents'] ?? data['incident_tickets'] ?? {};
+            _incidentsReported = _parseInt(incidentData['reported']) ?? 
+                               _parseInt(incidentData['all']) ?? 
+                               _parseInt(data['incident_reported']) ?? 0;
+            _incidentsUnaddressed = _parseInt(incidentData['unaddressed']) ?? 
+                                   _parseInt(incidentData['open']) ?? 
+                                   _parseInt(data['incident_unaddressed']) ?? 0;
+            _incidentsAssigned = _parseInt(incidentData['assigned']) ?? 
+                               _parseInt(data['incident_assigned']) ?? 0;
+          });
+          _fadeController.forward();
+        }
+      } else {
+        throw Exception('API error: ${response.statusCode} - ${response.body}');
+      }
+    } catch (e) {
+      print('🔴 [USER ACTIVITY] Error fetching activity data: $e');
+      
+      if (mounted) {
+        _fadeController.reset();
+        setState(() {
+          _isLoading = false;
+          // Keep existing values or set to 0 on error
+        });
+        _fadeController.forward();
+      }
     }
+  }
+
+  /// Helper method to safely parse integer from dynamic value
+  int? _parseInt(dynamic value) {
+    if (value == null) return null;
+    if (value is int) return value;
+    if (value is String) {
+      return int.tryParse(value);
+    }
+    return null;
   }
 
   /// Show period dropdown selector
