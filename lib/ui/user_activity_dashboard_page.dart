@@ -5,6 +5,11 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../config/constant.dart';
 import '../widgets/app_header_wrapper.dart';
+import 'user_activity_ip_feedback_list_page.dart';
+import 'user_activity_op_feedback_list_page.dart';
+import 'user_activity_pcf_list_page.dart';
+import 'user_activity_isr_list_page.dart';
+import 'user_activity_incident_list_page.dart';
 
 /// Period options for date filtering
 enum ActivityPeriod {
@@ -49,6 +54,7 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
   int _incidentsReported = 0;
   int _incidentsUnaddressed = 0;
   int _incidentsAssigned = 0;
+  int _incidentsClosed = 0;
 
   @override
   void initState() {
@@ -89,14 +95,16 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
         return {'from': last24Hours, 'to': now};
       
       case ActivityPeriod.last7Days:
+        // Last 7 days: today - 6 to today (7 days total)
         return {
-          'from': today.subtract(const Duration(days: 7)),
+          'from': today.subtract(const Duration(days: 6)),
           'to': today,
         };
       
       case ActivityPeriod.last30Days:
+        // Last 30 days: today - 29 to today (30 days total)
         return {
-          'from': today.subtract(const Duration(days: 30)),
+          'from': today.subtract(const Duration(days: 29)),
           'to': today,
         };
       
@@ -359,14 +367,31 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
         throw Exception('User ID not found. Please login again.');
       }
 
-      // Call existing backend API: /view/user_activity_api/{user_id}
-      final apiUrl = 'https://$domain.efeedor.com/view/user_activity_api/$userId';
+      // Get date range based on selected period
+      final dateRange = _getDateRange();
+      final fromDate = dateRange['from']!;  // older date (start)
+      final toDate = dateRange['to']!;      // newer date (end / today)
+      
+      // Format dates as YYYY-MM-DD (strict format)
+      final dateFormat = DateFormat('yyyy-MM-dd');
+      // IMPORTANT: tdate = older date (start), fdate = newer date (end)
+      // This is intentional legacy naming - DO NOT invert
+      final tdate = dateFormat.format(fromDate);  // older date
+      final fdate = dateFormat.format(toDate);    // newer date
+
+      // Call existing backend API: /view/user_activity_api/{user_id}?tdate=YYYY-MM-DD&fdate=YYYY-MM-DD
+      // tdate = start (older), fdate = end (newer)
+      final apiUrl = 'https://$domain.efeedor.com/view/user_activity_api/$userId?tdate=$tdate&fdate=$fdate';
       final uri = Uri.parse(apiUrl);
 
       print('🔵 [USER ACTIVITY] ========================================');
       print('🔵 [USER ACTIVITY] Calling user_activity_api');
+      print('🔵 [USER ACTIVITY] Selected Period: $_selectedPeriod');
+      print('🔵 [USER ACTIVITY] Start Date (older): $tdate (YYYY-MM-DD)');
+      print('🔵 [USER ACTIVITY] End Date (newer): $fdate (YYYY-MM-DD)');
       print('🔵 [USER ACTIVITY] URL: $apiUrl');
       print('🔵 [USER ACTIVITY] User ID: $userId');
+      print('🔵 [USER ACTIVITY] Note: tdate=start (older), fdate=end (newer) - intentional legacy naming');
       print('🔵 [USER ACTIVITY] ========================================');
 
       final response = await http.get(uri).timeout(
@@ -405,29 +430,22 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
                                _parseInt(data['pc_feedback_count']) ?? 0;
             
             // Internal Service Requests (ISR)
-            final isrData = data['internal_requests'] ?? data['isr_tickets'] ?? {};
-            _internalRequestsRaised = _parseInt(isrData['raised']) ?? 
-                                     _parseInt(isrData['all']) ?? 
-                                     _parseInt(data['isr_raised']) ?? 0;
-            _internalRequestsUnaddressed = _parseInt(isrData['unaddressed']) ?? 
-                                          _parseInt(isrData['open']) ?? 
-                                          _parseInt(data['isr_unaddressed']) ?? 0;
-            _internalRequestsAssigned = _parseInt(isrData['assigned']) ?? 
-                                       _parseInt(data['isr_assigned']) ?? 0;
-            _internalRequestsResolved = _parseInt(isrData['resolved']) ?? 
-                                       _parseInt(isrData['closed']) ?? 
-                                       _parseInt(data['isr_resolved']) ?? 0;
+            // Backend returns: isr_tickets { total, open, assigned, closed }
+            final isrTickets = data['isr_tickets'] ?? {};
+            debugPrint('🔵 [USER ACTIVITY] ISR Tickets: $isrTickets');
+            _internalRequestsRaised = _parseInt(isrTickets['total']) ?? 0;
+            _internalRequestsUnaddressed = _parseInt(isrTickets['open']) ?? 0;
+            _internalRequestsAssigned = _parseInt(isrTickets['assigned']) ?? 0;
+            _internalRequestsResolved = _parseInt(isrTickets['closed']) ?? 0;
             
             // Incidents
-            final incidentData = data['incidents'] ?? data['incident_tickets'] ?? {};
-            _incidentsReported = _parseInt(incidentData['reported']) ?? 
-                               _parseInt(incidentData['all']) ?? 
-                               _parseInt(data['incident_reported']) ?? 0;
-            _incidentsUnaddressed = _parseInt(incidentData['unaddressed']) ?? 
-                                   _parseInt(incidentData['open']) ?? 
-                                   _parseInt(data['incident_unaddressed']) ?? 0;
-            _incidentsAssigned = _parseInt(incidentData['assigned']) ?? 
-                               _parseInt(data['incident_assigned']) ?? 0;
+            // Backend returns: incident_tickets { total, open, assigned, closed }
+            final incidentTickets = data['incident_tickets'] ?? {};
+            debugPrint('🔵 [USER ACTIVITY] Incident Tickets: $incidentTickets');
+            _incidentsReported = _parseInt(incidentTickets['total']) ?? 0;
+            _incidentsUnaddressed = _parseInt(incidentTickets['open']) ?? 0;
+            _incidentsAssigned = _parseInt(incidentTickets['assigned']) ?? 0;
+            _incidentsClosed = _parseInt(incidentTickets['closed']) ?? 0;
           });
           _fadeController.forward();
         }
@@ -1144,8 +1162,25 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
               _buildActivityCard(
                 label: 'IP Feedbacks collected',
                 count: _ipDischargeFeedbacks,
-                onViewList: () {
-                  // TODO: Navigate to IP Feedbacks list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityIpFeedbackListPage(
+                          userId: userId,
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
 
@@ -1154,8 +1189,25 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
               _buildActivityCard(
                 label: 'OP Feedbacks collected',
                 count: _opFeedbacks,
-                onViewList: () {
-                  // TODO: Navigate to OP Feedbacks list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityOpFeedbackListPage(
+                          userId: userId,
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
 
@@ -1164,8 +1216,25 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
               _buildActivityCard(
                 label: 'Complaints captured',
                 count: _inpatientConcerns,
-                onViewList: () {
-                  // TODO: Navigate to Concerns list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityPcfListPage(
+                          userId: userId,
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
 
@@ -1174,29 +1243,101 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
               _buildActivityCard(
                 label: 'Requests raised',
                 count: _internalRequestsRaised,
-                onViewList: () {
-                  // TODO: Navigate to Requests raised list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityIsrListPage(
+                          userId: userId,
+                          status: 'all',
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
               _buildActivityCard(
                 label: 'Requests unaddressed',
                 count: _internalRequestsUnaddressed,
-                onViewList: () {
-                  // TODO: Navigate to Requests unaddressed list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityIsrListPage(
+                          userId: userId,
+                          status: 'open',
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
               _buildActivityCard(
                 label: 'Requests assigned',
                 count: _internalRequestsAssigned,
-                onViewList: () {
-                  // TODO: Navigate to Requests assigned list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityIsrListPage(
+                          userId: userId,
+                          status: 'assigne',
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
               _buildActivityCard(
                 label: 'Requests resolved',
                 count: _internalRequestsResolved,
-                onViewList: () {
-                  // TODO: Navigate to Requests resolved list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityIsrListPage(
+                          userId: userId,
+                          status: 'close',
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
 
@@ -1205,22 +1346,101 @@ class _UserActivityDashboardPageState extends State<UserActivityDashboardPage>
               _buildActivityCard(
                 label: 'Incidents reported',
                 count: _incidentsReported,
-                onViewList: () {
-                  // TODO: Navigate to Incidents reported list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityIncidentListPage(
+                          userId: userId,
+                          status: 'all',
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
               _buildActivityCard(
                 label: 'Incidents unaddressed',
                 count: _incidentsUnaddressed,
-                onViewList: () {
-                  // TODO: Navigate to Incidents unaddressed list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityIncidentListPage(
+                          userId: userId,
+                          status: 'open',
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
               _buildActivityCard(
                 label: 'Incidents assigned',
                 count: _incidentsAssigned,
-                onViewList: () {
-                  // TODO: Navigate to Incidents assigned list
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityIncidentListPage(
+                          userId: userId,
+                          status: 'assigne',
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
+                },
+              ),
+              _buildActivityCard(
+                label: 'Incidents closed',
+                count: _incidentsClosed,
+                onViewList: () async {
+                  final prefs = await SharedPreferences.getInstance();
+                  final userId = prefs.getString('userid') ?? '';
+                  if (userId.isNotEmpty) {
+                    final dateRange = _getDateRange();
+                    final dateFormat = DateFormat('yyyy-MM-dd');
+                    final tdate = dateFormat.format(dateRange['from']!);
+                    final fdate = dateFormat.format(dateRange['to']!);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => UserActivityIncidentListPage(
+                          userId: userId,
+                          status: 'close',
+                          tdate: tdate,
+                          fdate: fdate,
+                        ),
+                      ),
+                    );
+                  }
                 },
               ),
             ],
