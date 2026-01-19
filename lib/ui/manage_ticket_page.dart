@@ -892,6 +892,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
       final prefs = await SharedPreferences.getInstance();
       final domain = prefs.getString('domain') ?? '';
       final uid = prefs.getString('userid') ?? widget.uid ?? '';
+      final name = prefs.getString('name') ?? '';
 
       if (domain.isEmpty) {
         throw Exception('Domain not found. Please login again.');
@@ -912,6 +913,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
         ticketId: widget.ticketId,
         status: status,
         uid: uid,
+        name: name,
         message: message,
         rca: rca,
         capa: capa,

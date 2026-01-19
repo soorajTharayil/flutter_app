@@ -237,6 +237,7 @@ class TicketApiService {
     required String ticketId,
     required String status,
     required String uid,
+    required String name,
     String? message,
     String? rca,
     String? capa,
@@ -253,6 +254,7 @@ class TicketApiService {
       'ticketId': ticketId,
       'status': status,
       'uid': uid,
+      'name': name,
     };
 
     // Add optional fields based on status
