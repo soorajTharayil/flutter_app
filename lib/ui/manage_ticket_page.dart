@@ -40,12 +40,14 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
   String _selectedStatus = '';
   String? _originalStatus; // Track original status from backend
   bool _hasUserChangedStatus = false; // Track if user has changed status
+  bool _showReopenSection = false; // Track if reopen section should be shown
   
   // Controllers for input fields
   final TextEditingController _addressMessageController = TextEditingController();
   final TextEditingController _rcaController = TextEditingController();
   final TextEditingController _capaController = TextEditingController();
   final TextEditingController _transferReasonController = TextEditingController();
+  final TextEditingController _reopenReasonController = TextEditingController();
   String? _selectedDepartmentId; // For transfer dropdown
   List<dynamic> _transferDepartments = []; // For transfer dropdown - QuestionSet for IP, Department for OP
   bool _isLoadingDepartments = false;
@@ -62,6 +64,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     _rcaController.dispose();
     _capaController.dispose();
     _transferReasonController.dispose();
+    _reopenReasonController.dispose();
     super.dispose();
   }
 
@@ -120,6 +123,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
           _selectedStatus = normalizedStatus;
           _originalStatus = normalizedStatus; // Store original status from backend
           _hasUserChangedStatus = false; // Reset on new ticket load
+          _showReopenSection = false; // Reset reopen section on new ticket load
           _isLoading = false;
         });
       }
@@ -140,6 +144,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
             _selectedStatus = normalizedStatus;
             _originalStatus = normalizedStatus; // Store original status
             _hasUserChangedStatus = false; // Reset on new ticket load
+            _showReopenSection = false; // Reset reopen section on new ticket load
             _isLoading = false;
             _errorMessage = e.toString().replaceAll('Exception: ', '');
           });
@@ -287,16 +292,21 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
       // Mark that user has changed the status
       _hasUserChangedStatus = true;
       
-      // If Reopen is selected, transition to Open (active state)
+      // If Reopen is selected, show reopen section and transition to Open (active state)
       if (newStatus == 'Reopen') {
         _selectedStatus = 'Open';
-      } else if (newStatus == 'Close') {
-        // Normalize "Close" to "Closed" for consistency
-        _selectedStatus = 'Closed';
+        _showReopenSection = true;
       } else {
-        // Keep the selected value as-is (Address/Transfer) for UI display
-        // The normalization happens when loading from database
-        _selectedStatus = newStatus;
+        // Hide reopen section for other status changes
+        _showReopenSection = false;
+        if (newStatus == 'Close') {
+          // Normalize "Close" to "Closed" for consistency
+          _selectedStatus = 'Closed';
+        } else {
+          // Keep the selected value as-is (Address/Transfer) for UI display
+          // The normalization happens when loading from database
+          _selectedStatus = newStatus;
+        }
       }
     });
   }
@@ -338,6 +348,12 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
       return true;
     }
     return false;
+  }
+
+  /// Check if Reopen section should be visible
+  bool _shouldShowReopenSection() {
+    // Only show if user has selected Reopen and section should be visible
+    return _showReopenSection && _isClosedStatus(_originalStatus ?? '');
   }
 
   /// Load transfer departments based on module
@@ -832,6 +848,122 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     );
   }
 
+  /// Build Reopen section
+  Widget _buildReopenSection() {
+    return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Reopen ticket',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _reopenReasonController,
+              maxLines: 5,
+              decoration: InputDecoration(
+                hintText: 'Reason to reopen ticket',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.grey[50],
+              ),
+              onChanged: (_) => setState(() {}), // Trigger rebuild for button state
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Reason must be at least 25 characters',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _reopenReasonController.text.trim().length >= 25
+                    ? () => _handleReopenSubmit()
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: efeedorBrandGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  disabledBackgroundColor: Colors.grey[300],
+                  disabledForegroundColor: Colors.grey[600],
+                ),
+                child: const Text(
+                  'Submit',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Handle Reopen submit
+  Future<void> _handleReopenSubmit() async {
+    print('🟡 [DEBUG] ========================================');
+    print('🟡 [DEBUG] REOPEN SUBMIT CLICKED');
+    print('🟡 [DEBUG] ========================================');
+    
+    final reason = _reopenReasonController.text.trim();
+
+    if (reason.isEmpty) {
+      print('🔴 [DEBUG] Validation failed: Reopen reason is empty');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter a reason to reopen the ticket'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    // Validate minimum character length (25 characters)
+    if (reason.length < 25) {
+      print('🔴 [DEBUG] Validation failed: Reopen reason has less than 25 characters');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enter at least 25 characters for the reopen reason.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    print('🟡 [DEBUG] Reopen Reason: $reason');
+    print('🟡 [DEBUG] Status: Reopen');
+    print('🟡 [DEBUG] Ticket ID: ${widget.ticketId}');
+    print('🟡 [DEBUG] Module: ${widget.module}');
+
+    await _submitTicketDetails(
+      status: 'Reopen',
+      reason: reason,
+    );
+  }
+
   /// Handle Transfer submit
   Future<void> _handleTransferSubmit() async {
     print('🟡 [DEBUG] ========================================');
@@ -945,8 +1077,10 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
           _rcaController.clear();
           _capaController.clear();
           _transferReasonController.clear();
+          _reopenReasonController.clear();
           setState(() {
             _selectedDepartmentId = null;
+            _showReopenSection = false; // Hide reopen section after successful submit
           });
           
           // Return true to indicate ticket was updated (for list page refresh)
@@ -1289,6 +1423,9 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                     
                                     if (_shouldShowTransferSection())
                                       _buildTransferSection(),
+                                    
+                                    if (_shouldShowReopenSection())
+                                      _buildReopenSection(),
                                   ],
                                 ),
                               ),

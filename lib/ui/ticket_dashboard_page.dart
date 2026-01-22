@@ -40,15 +40,15 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
     with SingleTickerProviderStateMixin {
   // Module options
   static const List<TicketModule> _modules = [
-    TicketModule('IP Feedback Tickets', 'IP'),
+    TicketModule('IP Discharge Feedback Tickets', 'IP'),
     TicketModule('OP Feedback Tickets', 'OP'),
     TicketModule('IP Complaints/Requests', 'PCF'),
     TicketModule('Internal Service Requests', 'ISR'),
-    TicketModule('Incidents', 'INCIDENT'),
+    TicketModule('Incident Manager', 'INCIDENT'),
   ];
 
   // State
-  TicketModule _selectedModule = _modules[0]; // Default: IP Feedback Tickets
+  TicketModule _selectedModule = _modules[0]; // Default: IP Discharge Feedback Tickets
   TicketPeriod _selectedPeriod = TicketPeriod.last30Days; // Default: Last 30 Days
   DateTime? _customFromDate;
   DateTime? _customToDate;
