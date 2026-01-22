@@ -217,6 +217,18 @@ class _TicketListPageState extends State<TicketListPage> {
     return Colors.grey;
   }
 
+  /// Get display range text with module name and date range
+  /// Format: "Showing <Module Name> from <Start Date> to <End Date>"
+  /// Dates are formatted as DD-MM-YYYY
+  String _getDisplayRangeText() {
+    // Format dates as DD-MM-YYYY
+    final dateFormat = DateFormat('dd-MM-yyyy');
+    final fromDateStr = dateFormat.format(widget.fromDate);
+    final toDateStr = dateFormat.format(widget.toDate);
+    
+    return 'Showing ${widget.moduleName} from $fromDateStr to $toDateStr';
+  }
+
   /// Get patient details display text
   String _getPatientDetailsText(String? patientName, String? patientId) {
     if (patientName == null && patientId == null) {
@@ -445,7 +457,7 @@ class _TicketListPageState extends State<TicketListPage> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             color: Colors.grey[50],
             child: Text(
-              'Showing $statusDisplay tickets',
+              _getDisplayRangeText(),
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,

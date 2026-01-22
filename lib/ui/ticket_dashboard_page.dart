@@ -486,6 +486,22 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
     }
   }
 
+  /// Get display range text with module name and date range
+  /// Format: "Showing <Module Name> from <Start Date> to <End Date>"
+  /// Dates are formatted as DD-MM-YYYY
+  String _getDisplayRangeText() {
+    final dateRange = _getDateRange();
+    final fromDate = dateRange['from']!;
+    final toDate = dateRange['to']!;
+    
+    // Format dates as DD-MM-YYYY
+    final dateFormat = DateFormat('dd-MM-yyyy');
+    final fromDateStr = dateFormat.format(fromDate);
+    final toDateStr = dateFormat.format(toDate);
+    
+    return 'Showing ${_selectedModule.name} from $fromDateStr to $toDateStr';
+  }
+
   /// Navigate to ticket list page
   void _navigateToTicketList(String filterType) {
     final dateRange = _getDateRange();
@@ -756,7 +772,7 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Text(
-                      'Showing ${_selectedModule.name}',
+                      _getDisplayRangeText(),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w500,
