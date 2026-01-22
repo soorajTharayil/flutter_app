@@ -335,6 +335,31 @@ class _UserActivityIncidentListPageState extends State<UserActivityIncidentListP
     return status.toString();
   }
 
+  /// Get status color for User Activity Dashboard
+  /// Local method - only used in this screen
+  Color _getStatusColor(String status) {
+    if (status == null || status.toString().trim().isEmpty || status == 'N/A') {
+      return Colors.grey;
+    }
+    
+    final statusUpper = status.toString().toUpperCase().trim();
+    
+    switch (statusUpper) {
+      case 'OPEN':
+        return Colors.red;
+      case 'CLOSED':
+      case 'CLOSE':
+        return Colors.green;
+      case 'ADDRESSED':
+      case 'ASSIGNE':
+        return Colors.orange;
+      case 'TRANSFERRED':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
+  }
+
   /// Get Reported On from item
   /// Source: item.created_on
   String _getReportedOn(Map<String, dynamic> item) {
@@ -525,9 +550,23 @@ class _UserActivityIncidentListPageState extends State<UserActivityIncidentListP
                                         Icon(Icons.info_outline, size: 16, color: Colors.grey[600]),
                                         const SizedBox(width: 8),
                                         Expanded(
-                                          child: Text(
-                                            'Status: ${_getStatus(incident)}',
-                                            style: const TextStyle(fontSize: 13),
+                                          child: RichText(
+                                            text: TextSpan(
+                                              style: const TextStyle(
+                                                fontSize: 13,
+                                                color: Colors.black87,
+                                              ),
+                                              children: [
+                                                const TextSpan(text: 'Status: '),
+                                                TextSpan(
+                                                  text: _getStatus(incident),
+                                                  style: TextStyle(
+                                                    color: _getStatusColor(_getStatus(incident)),
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
                                           ),
                                         ),
                                       ],
