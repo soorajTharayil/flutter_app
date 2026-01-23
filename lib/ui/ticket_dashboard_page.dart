@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import 'dart:convert';
 import '../config/constant.dart';
 import '../services/ticket_api_service.dart';
 import '../model/ticket_dashboard_summary.dart';
@@ -38,8 +39,8 @@ class TicketDashboardPage extends StatefulWidget {
 
 class _TicketDashboardPageState extends State<TicketDashboardPage>
     with SingleTickerProviderStateMixin {
-  // Module options
-  static const List<TicketModule> _modules = [
+  // All available modules (before permission filtering)
+  static const List<TicketModule> _allModules = [
     TicketModule('IP Discharge Feedback Tickets', 'IP'),
     TicketModule('OP Feedback Tickets', 'OP'),
     TicketModule('IP Complaints/Requests', 'PCF'),
@@ -47,8 +48,20 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
     TicketModule('Incident Manager', 'INCIDENT'),
   ];
 
+  // Permission keys mapping for each module
+  // Multiple keys can map to same module (show if ANY is true)
+  static const Map<String, List<String>> _modulePermissionKeys = {
+    'IP': ['IP-TICKETS-DASHBOARD'],
+    'OP': ['OP-TICKETS-DASHBOARD'],
+    'PCF': ['PC-COMPLAINTS-DASHBOARD', 'COMPLAINTS-DASHBOARD'],
+    'ISR': ['ISR-REQUESTS-DASHBOARD', 'REQUESTS-DASHBOARD'],
+    'INCIDENT': ['INC-INCIDENTS-DASHBOARD', 'INCIDENTS-DASHBOARD'],
+  };
+
   // State
-  TicketModule _selectedModule = _modules[0]; // Default: IP Discharge Feedback Tickets
+  Map<String, dynamic> _permissions = {};
+  List<TicketModule> _modules = []; // Filtered modules based on permissions
+  TicketModule? _selectedModule;
   TicketPeriod _selectedPeriod = TicketPeriod.last30Days; // Default: Last 30 Days
   DateTime? _customFromDate;
   DateTime? _customToDate;
@@ -71,7 +84,63 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
       curve: Curves.easeInOut,
     );
     _fadeController.forward();
-    _fetchDashboardData();
+    _loadPermissions();
+  }
+
+  /// Load permissions from SharedPreferences and filter modules
+  Future<void> _loadPermissions() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final permissionsJson = prefs.getString('user_permissions');
+      if (permissionsJson != null) {
+        setState(() {
+          _permissions = jsonDecode(permissionsJson) as Map<String, dynamic>;
+          _filterModulesByPermissions();
+        });
+      } else {
+        setState(() {
+          _permissions = {};
+          _filterModulesByPermissions();
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _permissions = {};
+        _filterModulesByPermissions();
+      });
+    }
+    
+    // Fetch dashboard data after permissions are loaded
+    if (mounted && _modules.isNotEmpty) {
+      _fetchDashboardData();
+    }
+  }
+
+  /// Filter modules based on permissions
+  /// Module appears if ANY of its permission keys is true
+  void _filterModulesByPermissions() {
+    _modules = _allModules.where((module) {
+      final permissionKeys = _modulePermissionKeys[module.code];
+      if (permissionKeys == null || permissionKeys.isEmpty) {
+        return false; // No permission keys defined, hide module
+      }
+      
+      // Check if ANY permission key is true
+      for (final key in permissionKeys) {
+        if (_permissions[key] == true) {
+          return true; // At least one permission is true, show module
+        }
+      }
+      
+      return false; // No permissions are true, hide module
+    }).toList();
+    
+    // Set selected module to first available module, or null if none
+    if (_modules.isNotEmpty) {
+      _selectedModule = _modules[0];
+    } else {
+      _selectedModule = null;
+    }
   }
 
   @override
@@ -167,11 +236,16 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
       final fromDate = dateRange['from']!;
       final toDate = dateRange['to']!;
 
+      // Check if module is selected
+      if (_selectedModule == null) {
+        throw Exception('No module selected');
+      }
+
       // Fetch data
       final summary = await TicketApiService.fetchTicketDashboard(
         domain: domain,
         uid: uid,
-        moduleCode: _selectedModule.code,
+        moduleCode: _selectedModule!.code,
         fromDate: fromDate,
         toDate: toDate,
       );
@@ -358,6 +432,16 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
 
   /// Show module selector bottom sheet
   void _showModuleSelector() {
+    if (_modules.isEmpty) {
+      // No modules available - show message
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No modules available. Please contact administrator.'),
+        ),
+      );
+      return;
+    }
+    
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
@@ -391,7 +475,7 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
               ),
             ),
             const Divider(),
-            // Module options
+            // Module options (filtered by permissions)
             ..._modules.map((module) => RadioListTile<TicketModule>(
               title: Text(module.name),
               value: module,
@@ -499,11 +583,17 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
     final fromDateStr = dateFormat.format(fromDate);
     final toDateStr = dateFormat.format(toDate);
     
-    return 'Showing ${_selectedModule.name} from $fromDateStr to $toDateStr';
+    if (_selectedModule == null) {
+      return 'No module selected';
+    }
+    return 'Showing ${_selectedModule!.name} from $fromDateStr to $toDateStr';
   }
 
   /// Navigate to ticket list page
   void _navigateToTicketList(String filterType) {
+    if (_selectedModule == null) {
+      return; // Cannot navigate without selected module
+    }
     final dateRange = _getDateRange();
     final fromDate = dateRange['from']!;
     final toDate = dateRange['to']!;
@@ -511,14 +601,36 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
       context,
       MaterialPageRoute(
         builder: (context) => TicketListPage(
-          moduleCode: _selectedModule.code,
-          moduleName: _selectedModule.name,
+          moduleCode: _selectedModule!.code,
+          moduleName: _selectedModule!.name,
           fromDate: fromDate,
           toDate: toDate,
           filterType: filterType,
         ),
       ),
     );
+  }
+
+  /// Get label suffix based on module code
+  /// IP / OP → "TICKETS"
+  /// PCF → "COMPLAINTS"
+  /// ISR → "REQUESTS"
+  /// INCIDENT → "INCIDENTS"
+  String _getLabelSuffix() {
+    if (_selectedModule == null) {
+      return 'REQUESTS'; // Default fallback
+    }
+    final moduleCode = _selectedModule!.code;
+    if (moduleCode == 'IP' || moduleCode == 'OP') {
+      return 'TICKETS';
+    } else if (moduleCode == 'PCF') {
+      return 'COMPLAINTS';
+    } else if (moduleCode == 'ISR') {
+      return 'REQUESTS';
+    } else if (moduleCode == 'INCIDENT') {
+      return 'INCIDENTS';
+    }
+    return 'REQUESTS'; // Default fallback
   }
 
   /// Build summary card - Rectangular centered card with Row layout
@@ -702,7 +814,7 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
                               children: [
                                 Expanded(
                                   child: Text(
-                                    _selectedModule.name,
+                                    _selectedModule?.name ?? 'No module selected',
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.w600,
@@ -839,7 +951,7 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
                           children: [
                             const SizedBox(height: 12),
                             _buildSummaryCard(
-                              label: 'TOTAL REQUESTS',
+                              label: 'TOTAL ${_getLabelSuffix()}',
                               count: _summary!.totalTicket,
                               gradientColors: const [
                                 Color(0xFF009688), // Teal
@@ -850,7 +962,7 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
                             ),
                             const SizedBox(height: 16),
                             _buildSummaryCard(
-                              label: 'OPEN REQUESTS',
+                              label: 'OPEN ${_getLabelSuffix()}',
                               count: _summary!.openTicket,
                               gradientColors: const [
                                 Color(0xFF4CAF50), // Green
@@ -861,7 +973,7 @@ class _TicketDashboardPageState extends State<TicketDashboardPage>
                             ),
                             const SizedBox(height: 16),
                             _buildSummaryCard(
-                              label: 'CLOSED REQUESTS',
+                              label: 'CLOSED ${_getLabelSuffix()}',
                               count: _summary!.closedTicket,
                               gradientColors: [
                                 Colors.orange.shade700,
