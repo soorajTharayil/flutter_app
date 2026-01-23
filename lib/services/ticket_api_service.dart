@@ -137,17 +137,37 @@ class TicketApiService {
     print('🟢 [LIST API] Response Status: ${response.statusCode}');
     if (response.statusCode == 200) {
       try {
+        print('🟢 [LIST API] Response Body: ${response.body}');
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
         print('🟢 [LIST API] Ticket Count: ${responseData['ticketCount'] ?? 'N/A'}');
         print('🟢 [LIST API] Section: ${responseData['section'] ?? 'N/A'}');
-        final tickets = responseData['tickets'] as List?;
-        print('🟢 [LIST API] Tickets Returned: ${tickets?.length ?? 0}');
-        if (tickets != null && tickets.isNotEmpty) {
-          print('🟢 [LIST API] Sample ticket statuses:');
-          for (var i = 0; i < tickets.length && i < 3; i++) {
-            final ticket = tickets[i] as Map<String, dynamic>;
-            print('🟢 [LIST API]   Ticket ${ticket['ticketID'] ?? ticket['id']}: status="${ticket['status']}"');
+        // Safely check tickets - may be List or Map
+        final ticketsRaw = responseData['tickets'];
+        if (ticketsRaw is List) {
+          print('🟢 [LIST API] Tickets Returned (List): ${ticketsRaw.length}');
+          if (ticketsRaw.isNotEmpty) {
+            print('🟢 [LIST API] Sample ticket statuses:');
+            for (var i = 0; i < ticketsRaw.length && i < 3; i++) {
+              final ticket = ticketsRaw[i];
+              if (ticket is Map<String, dynamic>) {
+                print('🟢 [LIST API]   Ticket ${ticket['ticketID'] ?? ticket['id']}: status="${ticket['status']}"');
+              }
+            }
           }
+        } else if (ticketsRaw is Map) {
+          print('🟢 [LIST API] Tickets Returned (Map): ${ticketsRaw.length} status groups');
+          // Count total tickets in map
+          int totalCount = 0;
+          for (var value in ticketsRaw.values) {
+            if (value is List) {
+              totalCount += value.length;
+            } else if (value is Map) {
+              totalCount += 1;
+            }
+          }
+          print('🟢 [LIST API] Total tickets in map: $totalCount');
+        } else {
+          print('🟢 [LIST API] Tickets Returned: 0 (null or unknown type)');
         }
       } catch (e) {
         print('🔴 [LIST API] Error parsing response: $e');
@@ -160,7 +180,33 @@ class TicketApiService {
     if (response.statusCode == 200) {
       try {
         final responseData = jsonDecode(response.body) as Map<String, dynamic>;
-        return TicketListResponse.fromJson(responseData);
+        
+        // Safely normalize tickets field - handle both List and Map formats
+        final ticketsRaw = responseData['tickets'];
+        List<dynamic> normalizedTickets = [];
+        
+        if (ticketsRaw is List) {
+          // tickets is a List - use it directly
+          normalizedTickets = ticketsRaw;
+        } else if (ticketsRaw is Map<String, dynamic>) {
+          // tickets is a Map (status-wise tickets when section = "ALL")
+          // Flatten all List values into a single List
+          for (var value in ticketsRaw.values) {
+            if (value is List) {
+              normalizedTickets.addAll(value);
+            } else if (value is Map<String, dynamic>) {
+              // Single ticket object - add it
+              normalizedTickets.add(value);
+            }
+          }
+        }
+        // If ticketsRaw is null or other type, normalizedTickets remains empty []
+        
+        // Create normalized response data with List format
+        final normalizedResponseData = Map<String, dynamic>.from(responseData);
+        normalizedResponseData['tickets'] = normalizedTickets;
+        
+        return TicketListResponse.fromJson(normalizedResponseData);
       } catch (e) {
         throw Exception('Failed to parse response: $e');
       }
@@ -243,6 +289,8 @@ class TicketApiService {
     String? capa,
     String? departmentId,
     String? reason,
+    String? departmentTransfer,
+    String? sourceDepartmentTransfer,
   }) async {
     // Build URL
     final apiUrl = 'https://$domain.efeedor.com/api/save-ticket-details.php';
@@ -273,6 +321,24 @@ class TicketApiService {
     }
     if (reason != null && reason.isNotEmpty) {
       payload['reason'] = reason;
+    }
+    // For Reopen tickets, send reason in same pattern as Addressed tickets
+    if (status == 'Reopen' && reason != null && reason.isNotEmpty) {
+      payload['message'] = reason;
+      payload['reopenDetails'] = reason; // Support both field names
+    }
+
+    if (status == 'Transfered' && reason != null && reason.isNotEmpty) {
+      payload['message'] = reason;
+      payload['transferComments'] = reason; // Support both field names
+    }
+
+    if (status == 'Transfered' && departmentTransfer != null && departmentTransfer.isNotEmpty) {
+      payload['departmentTransfer'] = departmentTransfer; // Support both field names
+    }
+
+    if (status == 'Transfered' && sourceDepartmentTransfer != null && sourceDepartmentTransfer.isNotEmpty) {
+      payload['sourceDepartmentTransfer'] = sourceDepartmentTransfer; // Support both field names
     }
 
     final body = jsonEncode(payload);

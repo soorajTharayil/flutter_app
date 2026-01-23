@@ -46,11 +46,13 @@ class Ticket {
       patientMobile = patinet['patient_mobile']?.toString() ?? 
                       patinet['mobile']?.toString() ?? 
                       patinet['patientMobile']?.toString();
-    } else {
-      // Check for direct fields as fallback
-      patientName = json['patient_name']?.toString() ?? json['patientName']?.toString();
-      patientId = json['patient_id']?.toString() ?? json['patientId']?.toString();
-      patientMobile = json['patient_mobile']?.toString() ?? json['patientMobile']?.toString();
+    }
+    // Also check for direct patientMobile field in JSON
+    if (patientMobile == null && json['patientMobile'] != null) {
+      patientMobile = json['patientMobile']?.toString();
+    }
+    if (patientMobile == null && json['patient_mobile'] != null) {
+      patientMobile = json['patient_mobile']?.toString();
     }
 
     // Extract concern
