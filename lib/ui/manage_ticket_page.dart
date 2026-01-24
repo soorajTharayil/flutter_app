@@ -115,6 +115,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
               ? apiDetail.patientMobile?.trim()
               : (widget.patientMobile?.trim().isNotEmpty == true ? widget.patientMobile?.trim() : null),
           floor: apiDetail.floor,
+          bedNo: apiDetail.bedNo,
         );
         
         setState(() {
@@ -184,15 +185,54 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     }
   }
 
+  /// Map numeric rating to text label
+  /// 1 = Worst, 2 = Poor, 3 = Good, 4 = Very Good, 5 = Excellent
+  String? _getRatingText(String? rating) {
+    if (rating == null || rating.isEmpty) return null;
+    
+    // Try to parse as integer
+    final ratingInt = int.tryParse(rating.trim());
+    if (ratingInt != null) {
+      switch (ratingInt) {
+        case 1:
+          return 'Worst';
+        case 2:
+          return 'Poor';
+        case 3:
+          return 'Good';
+        case 4:
+          return 'Very Good';
+        case 5:
+          return 'Excellent';
+        default:
+          return null;
+      }
+    }
+    
+    // If not numeric, check if it's already a text label
+    final ratingLower = rating.trim().toLowerCase();
+    if (ratingLower == 'worst' || ratingLower == 'poor' || ratingLower == 'good' || 
+        ratingLower == 'very good' || ratingLower == 'excellent') {
+      // Capitalize first letter of each word
+      return rating.split(' ').map((word) {
+        if (word.isEmpty) return word;
+        return word[0].toUpperCase() + word.substring(1).toLowerCase();
+      }).join(' ');
+    }
+    
+    return null;
+  }
+
   /// Get ticket details description
   String _getTicketDetailsText() {
     if (_ticketDetail == null) return '-';
     
     final rating = _ticketDetail!.rating;
+    final ratingText = _getRatingText(rating);
     final departDesc = _ticketDetail!.departDesc ?? _ticketDetail!.departmentName ?? '';
     
-    if (rating != null && rating.isNotEmpty && departDesc.isNotEmpty) {
-      return 'Rated $rating for $departDesc';
+    if (ratingText != null && departDesc.isNotEmpty) {
+      return 'Rated $ratingText for $departDesc';
     } else if (departDesc.isNotEmpty) {
       return departDesc;
     } else if (_ticketDetail!.reasonText != null && _ticketDetail!.reasonText!.isNotEmpty) {
@@ -229,11 +269,23 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
   }
 
   /// Get department/location info
-  /// Returns formatted as "From DEPARTMENT_NAME" or null if not available
+  /// Returns formatted as "From <bed_no> in <ward>" or "From <ward>" or null if not available
   String? _getDepartmentInfo() {
     if (_ticketDetail == null) return null;
     
-    // Try departmentName first, then departDesc
+    final bedNo = _ticketDetail!.bedNo?.trim();
+    final ward = _ticketDetail!.ward?.trim() ?? _ticketDetail!.floor?.trim();
+    
+    // Build location string similar to Cordova: "From <bed_no> in <ward>"
+    if (bedNo != null && bedNo.isNotEmpty && ward != null && ward.isNotEmpty) {
+      return 'From $bedNo in $ward';
+    } else if (bedNo != null && bedNo.isNotEmpty) {
+      return 'From $bedNo';
+    } else if (ward != null && ward.isNotEmpty) {
+      return 'From $ward';
+    }
+    
+    // Fallback to department name if location fields are not available
     final department = _ticketDetail!.departmentName?.trim() ?? 
                        _ticketDetail!.departDesc?.trim() ?? '';
     

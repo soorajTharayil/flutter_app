@@ -12,6 +12,7 @@ class TicketDetail {
   final String? patientMobile;
   final String? patientId;
   final String? floor;
+  final String? bedNo;
 
   TicketDetail({
     required this.ticketId,
@@ -26,6 +27,7 @@ class TicketDetail {
     this.patientMobile,
     this.patientId,
     this.floor,
+    this.bedNo,
   });
 
   factory TicketDetail.fromJson(Map<String, dynamic> json) {
@@ -33,6 +35,7 @@ class TicketDetail {
     String? patientName;
     String? patientMobile;
     String? patientId;
+    String? bedNo;
     
     // Check for nested patient object (with typo 'patinet')
     if (json['patinet'] != null && json['patinet'] is Map) {
@@ -42,6 +45,7 @@ class TicketDetail {
                       patinet['mobile']?.toString() ?? 
                       patinet['patientMobile']?.toString();
       patientId = patinet['patient_id']?.toString() ?? patinet['patientId']?.toString();
+      bedNo = patinet['bed_no']?.toString() ?? patinet['bedNo']?.toString() ?? patinet['bed_number']?.toString();
     } 
     // Check for nested patient object (correct spelling)
     else if (json['patient'] != null && json['patient'] is Map) {
@@ -51,13 +55,18 @@ class TicketDetail {
                       patient['mobile']?.toString() ?? 
                       patient['patientMobile']?.toString();
       patientId = patient['patient_id']?.toString() ?? patient['patientId']?.toString();
+      bedNo = patient['bed_no']?.toString() ?? patient['bedNo']?.toString() ?? patient['bed_number']?.toString();
     }
     // Check for direct fields (snake_case and camelCase)
     else {
       patientName = json['patient_name']?.toString() ?? json['patientName']?.toString();
       patientMobile = json['patient_mobile']?.toString() ?? json['patientMobile']?.toString();
       patientId = json['patient_id']?.toString() ?? json['patientId']?.toString();
+      bedNo = json['bed_no']?.toString() ?? json['bedNo']?.toString() ?? json['bed_number']?.toString();
     }
+    
+    // Also check for bed_no at root level (fallback if not found in nested objects)
+    bedNo = bedNo ?? json['bed_no']?.toString() ?? json['bedNo']?.toString() ?? json['bed_number']?.toString();
 
     return TicketDetail(
       ticketId: json['ticketId']?.toString() ?? json['ticket_id']?.toString() ?? json['ticketID']?.toString() ?? '',
@@ -72,6 +81,7 @@ class TicketDetail {
       patientMobile: patientMobile,
       patientId: patientId,
       floor: json['floor']?.toString(),
+      bedNo: bedNo,
     );
   }
 }

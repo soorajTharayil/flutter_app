@@ -337,8 +337,8 @@ class TicketApiService {
       payload['departmentTransfer'] = departmentTransfer; // Support both field names
     }
 
-    if (status == 'Transfered' && sourceDepartmentTransfer != null && sourceDepartmentTransfer.isNotEmpty) {
-      payload['sourceDepartmentTransfer'] = sourceDepartmentTransfer; // Support both field names
+    if (status == 'Transfered' && departmentId != null && departmentId.isNotEmpty) {
+      payload['sourceDepartmentTransfer'] = departmentId; // Support both field names
     }
 
     final body = jsonEncode(payload);
