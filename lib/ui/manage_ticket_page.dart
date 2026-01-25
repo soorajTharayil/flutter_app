@@ -574,12 +574,23 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                 filled: true,
                 fillColor: Colors.grey[50],
               ),
+              onChanged: (_) => setState(() {}), // Trigger rebuild for button state
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Address must be at least 25 characters',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+              ),
             ),
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => _handleAddressSubmit(),
+                onPressed: _addressMessageController.text.trim().length >= 25
+                    ? () => _handleAddressSubmit()
+                    : null,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: efeedorBrandGreen,
                   foregroundColor: Colors.white,
@@ -587,6 +598,8 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
+                  disabledBackgroundColor: Colors.grey[300],
+                  disabledForegroundColor: Colors.grey[600],
                 ),
                 child: const Text(
                   'Submit',
