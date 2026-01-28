@@ -140,10 +140,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
           bool hasOtherSelected = false;
           for (final sub in q.negative) {
             if (reasons[sub.id] == true) {
-              // Check if this sub-question contains "other" (case-insensitive)
-              final subText = apiText(
-                      sub.question, sub.questionk, sub.questionm, globalLang)
-                  .toLowerCase();
+              // Use the English source text so detection works in all languages
+              final subText = sub.question.toLowerCase();
               if (subText.contains('other')) {
                 hasOtherSelected = true;
                 break;

@@ -178,20 +178,18 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
             return 'Please select at least one issue for "$questionText"';
           }
 
-          // Check if "Other" is selected - if so, comment is mandatory
-          bool hasOtherSelected = false;
-          for (final sub in q.negative) {
-            if (reasons[sub.id] == true) {
-              // Check if this sub-question contains "other" (case-insensitive)
-              final subText = apiText(
-                      sub.question, sub.questionk, sub.questionm, globalLang)
-                  .toLowerCase();
-              if (subText.contains('other')) {
-                hasOtherSelected = true;
-                break;
-              }
+        // Check if "Other" is selected - if so, comment is mandatory
+        bool hasOtherSelected = false;
+        for (final sub in q.negative) {
+          if (reasons[sub.id] == true) {
+            // Use the English source text so detection works in all languages
+            final subText = sub.question.toLowerCase();
+            if (subText.contains('other')) {
+              hasOtherSelected = true;
+              break;
             }
           }
+        }
 
           if (hasOtherSelected) {
             final comment = comments[q.id] ?? '';
@@ -674,14 +672,9 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                                                             in q.negative) {
                                                           if (reasons[sub.id] ==
                                                               true) {
-                                                            final globalLang =
-                                                                OPLocalizationService
-                                                                    .currentLanguage;
-                                                            final subText = apiText(
-                                                                    sub.question,
-                                                                    sub.questionk,
-                                                                    sub.questionm,
-                                                                    globalLang)
+                                                            // Use the English source text so detection works in all languages
+                                                            final subText = sub
+                                                                .question
                                                                 .toLowerCase();
                                                             if (subText
                                                                 .contains(
