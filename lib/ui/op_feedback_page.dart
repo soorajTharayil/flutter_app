@@ -178,10 +178,6 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                             hint: context.opTranslate('enter_uhid'),
                             icon: Icons.badge,
                             maxLength: 20,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
                             fieldKey: _uhidFieldKey,
                             validator: (val) => val == null || val.isEmpty
                                 ? context.opTranslate('uhid_required')

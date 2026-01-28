@@ -43,10 +43,10 @@ class _IPDischargePatientInfoPageState
   final _nameFieldKey = GlobalKey<FormFieldState<String>>();
   final _uhidFieldKey = GlobalKey<FormFieldState<String>>();
   final _wardFieldKey = GlobalKey<FormFieldState<String>>();
-  final _roomBedFieldKey = GlobalKey<FormFieldState<String>>();
+  final _bed_noFieldKey = GlobalKey<FormFieldState<String>>();
 
   String? selectedWard;
-  String? selectedRoomBed;
+  String? selectedbed_no;
   List<Ward> wards = [];
   List<String> bedNumbers = [];
   bool isLoadingWards = true;
@@ -116,7 +116,7 @@ class _IPDischargePatientInfoPageState
     if (wardTitle == null || wardTitle.isEmpty) {
       setState(() {
         bedNumbers = [];
-        selectedRoomBed = null;
+        selectedbed_no = null;
       });
       return;
     }
@@ -124,7 +124,7 @@ class _IPDischargePatientInfoPageState
     final bedList = getBedNumbersForWard(wards, wardTitle);
     setState(() {
       bedNumbers = bedList;
-      selectedRoomBed = null; // Reset selection when ward changes
+      selectedbed_no = null; // Reset selection when ward changes
     });
   }
 
@@ -135,7 +135,7 @@ class _IPDischargePatientInfoPageState
         uhid: _uhidController.text,
         mobileNumber: widget.mobileNumber,
         ward: selectedWard!,
-        roomBed: selectedRoomBed!,
+        bed_no: selectedbed_no!,
       );
 
       Navigator.push(
@@ -232,10 +232,6 @@ class _IPDischargePatientInfoPageState
                             hint: context.opTranslate('enter_ip_uhid'),
                             icon: Icons.badge,
                             maxLength: 20,
-                            keyboardType: TextInputType.number,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly
-                            ],
                             fieldKey: _uhidFieldKey,
                             validator: (val) => val == null || val.isEmpty
                                 ? context.opTranslate('uhid_required')
@@ -243,7 +239,7 @@ class _IPDischargePatientInfoPageState
                           ),
                           buildWardDropdown(),
                           const SizedBox(height: 20),
-                          buildRoomBedDropdown(),
+                          buildbed_noDropdown(),
                           // <-- SAME GAP AS NAME–UHID
                         ],
                       ),
@@ -447,7 +443,7 @@ class _IPDischargePatientInfoPageState
     );
   }
 
-  Widget buildRoomBedDropdown() {
+  Widget buildbed_noDropdown() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -493,17 +489,17 @@ class _IPDischargePatientInfoPageState
                 : LayoutBuilder(
                     builder: (context, constraints) {
                       return TextFormField(
-                        key: _roomBedFieldKey,
+                        key: _bed_noFieldKey,
                         controller:
-                            TextEditingController(text: selectedRoomBed),
+                            TextEditingController(text: selectedbed_no),
                         onChanged: (value) {
                           setState(() {
-                            selectedRoomBed = value;
+                            selectedbed_no = value;
                           });
 
                           if (_hasValidatedOnce &&
-                              _roomBedFieldKey.currentState != null) {
-                            _roomBedFieldKey.currentState!.validate();
+                              _bed_noFieldKey.currentState != null) {
+                            _bed_noFieldKey.currentState!.validate();
                           }
                         },
                         decoration: inputDecoration(

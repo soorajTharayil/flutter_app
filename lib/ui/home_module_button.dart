@@ -124,7 +124,7 @@ class _HomePageState extends State<HomePage> {
       'color': Colors.orange,
       'desc': 'Create and submit internal department requests',
       'urlPath': '/isrr', // Web URL path
-      'permissionKey': 'ADDRESSED-REQUESTS', // Using this permission key
+      'permissionKey': 'ISR-MODULE', // Using this permission key
     },
     {
       'title': 'Report Incident',

@@ -47,15 +47,15 @@ class Ward {
   }
 }
 
-class RoomBed {
+class bed_no {
   final String title;
   final String id;
   final String? wardId;
 
-  RoomBed({required this.title, required this.id, this.wardId});
+  bed_no({required this.title, required this.id, this.wardId});
 
-  factory RoomBed.fromJson(Map<String, dynamic> json) {
-    return RoomBed(
+  factory bed_no.fromJson(Map<String, dynamic> json) {
+    return bed_no(
       title: json['title'] ?? json['name'] ?? json['bedno'] ?? '',
       id: json['id']?.toString() ?? json['title'] ?? '',
       wardId: json['wardid']?.toString(),

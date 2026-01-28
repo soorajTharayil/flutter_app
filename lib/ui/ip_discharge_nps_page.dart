@@ -301,7 +301,7 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
       'name': feedbackData.name,
       'patientid': feedbackData.uhid,
       'ward': feedbackData.ward,
-      'roomBed': feedbackData.roomBed,
+      'bed_no': feedbackData.bed_no,
       'contactnumber': feedbackData.mobileNumber,
       'patientType': 'In-Patient',
       'consultant_cat': 'General',

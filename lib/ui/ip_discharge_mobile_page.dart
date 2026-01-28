@@ -96,7 +96,7 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
                 uhid: pinfo['patient_id']?.toString() ?? '',
                 mobileNumber: mobileNumber,
                 ward: pinfo['ward']?.toString() ?? '',
-                roomBed: pinfo['bed_no']?.toString() ?? '',
+                bed_no: pinfo['bed_no']?.toString() ?? '',
               );
 
               // Navigate directly to Emoji Page (skip Patient Info Page)
