@@ -332,7 +332,9 @@ class TicketApiService {
       payload['message'] = reason;
       payload['transferComments'] = reason; // Support both field names
     }
-
+    print('🔵 [DEBUG] Department Transfer: $departmentTransfer');
+    print('🔵 [DEBUG] Department ID: $departmentId');
+    print('🔵 [DEBUG] Source Department Transfer: $sourceDepartmentTransfer');
     if (status == 'Transfered' && departmentTransfer != null && departmentTransfer.isNotEmpty) {
       payload['departmentTransfer'] = departmentTransfer; // Support both field names
     }

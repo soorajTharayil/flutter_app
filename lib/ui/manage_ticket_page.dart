@@ -327,6 +327,38 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     return statusUpper == 'CLOSE' || statusUpper == 'CLOSED';
   }
 
+  /// Get color for status value text
+  Color _getStatusColor(String status) {
+    final statusUpper = status.toUpperCase();
+    
+    // Addressed status → Yellow
+    if (statusUpper == 'ADDRESS' || statusUpper == 'ADDRESSED') {
+      return Colors.yellow.shade700;
+    }
+    
+    // Transferred status → Blue
+    if (statusUpper == 'TRANSFER' || statusUpper == 'TRANSFERED' || statusUpper == 'TRANSFERRED') {
+      return Colors.blue;
+    }
+    
+    // Reopen status → Purple
+    if (statusUpper == 'REOPEN') {
+      return Colors.purple;
+    }
+    
+    // Keep existing colors for Open and Closed
+    if (statusUpper == 'OPEN') {
+      return Colors.red;
+    }
+    
+    if (_isClosedStatus(status)) {
+      return Colors.green;
+    }
+    
+    // Default: black
+    return Colors.black87;
+  }
+
   /// Get available status options based on current ticket status
   List<String> _getAvailableStatusOptions() {
     // If ticket is closed, only show Closed and Reopen
@@ -1464,11 +1496,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                               _selectedStatus,
                                               style: TextStyle(
                                                 fontSize: 14,
-                                                color: _selectedStatus.toUpperCase() == 'OPEN'
-                                                    ? Colors.red
-                                                    : _isClosedStatus(_selectedStatus)
-                                                        ? Colors.green
-                                                        : Colors.black87,
+                                                color: _getStatusColor(_selectedStatus),
                                                 fontWeight: FontWeight.w500,
                                               ),
                                             ),

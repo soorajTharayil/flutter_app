@@ -207,14 +207,36 @@ class _TicketListPageState extends State<TicketListPage> {
 
   /// Get status color
   Color _getStatusColor(String? status) {
-    if (status == null) return Colors.grey;
+    if (status == null) return Colors.black87;
     final statusUpper = status.toUpperCase();
+    
+    // Addressed status → Yellow
+    if (statusUpper == 'ADDRESS' || statusUpper == 'ADDRESSED') {
+      return Colors.yellow.shade700;
+    }
+    
+    // Transferred status → Blue
+    if (statusUpper == 'TRANSFER' || statusUpper == 'TRANSFERED' || statusUpper == 'TRANSFERRED') {
+      return Colors.blue;
+    }
+    
+    // Reopen status → Purple
+    if (statusUpper == 'REOPEN') {
+      return Colors.purple;
+    }
+    
+    // Open status → Red
     if (statusUpper == 'OPEN') {
       return Colors.red;
-    } else if (statusUpper == 'CLOSED') {
+    }
+    
+    // Closed status → Green
+    if (statusUpper == 'CLOSED' || statusUpper == 'CLOSE') {
       return Colors.green;
     }
-    return Colors.grey;
+    
+    // Default: black
+    return Colors.black87;
   }
 
   /// Get display range text with module name and date range
