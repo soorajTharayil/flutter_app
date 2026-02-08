@@ -29,6 +29,8 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
   List<QuestionSet> _questionSets = [];
   bool _isReloading = false;
   bool _isLoading = true;
+  final ScrollController _scrollController = ScrollController();
+  final Map<String, GlobalKey> _questionKeys = {};
 
   @override
   void initState() {
@@ -41,6 +43,7 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
   @override
   void dispose() {
     OPLocalizationService.instance.removeListener(_onLanguageChanged);
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -154,12 +157,24 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
     });
   }
 
-  String? _validateFeedback() {
+  void _scrollToQuestion(String questionId) {
+    final key = _questionKeys[questionId];
+    if (key?.currentContext != null) {
+      Scrollable.ensureVisible(
+        key!.currentContext!,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeInOut,
+        alignment: 0.1, // Scroll to show question near top
+      );
+    }
+  }
+
+  Map<String, dynamic>? _validateFeedback() {
     final globalLang = OPLocalizationService.currentLanguage;
 
     // First check: At least one question must be answered
     if (feedbackValues.isEmpty) {
-      return 'Please answer at least one question before proceeding';
+      return {'message': 'Please answer at least one question before proceeding', 'questionId': null};
     }
 
     // Check all question sets
@@ -175,7 +190,7 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
           if (!hasSelection) {
             final questionText =
                 apiText(q.question, q.questionk, q.questionm, globalLang);
-            return 'Please select at least one issue for "$questionText"';
+            return {'message': 'Please select at least one issue for "$questionText"', 'questionId': q.id};
           }
 
         // Check if "Other" is selected - if so, comment is mandatory
@@ -196,7 +211,7 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
             if (comment.trim().isEmpty) {
               final questionText =
                   apiText(q.question, q.questionk, q.questionm, globalLang);
-              return 'Please provide a comment for "Other" option in "$questionText"';
+              return {'message': 'Please provide a comment for "Other" option in "$questionText"', 'questionId': q.id};
             }
           }
         }
@@ -205,7 +220,7 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
     return null; // No validation errors
   }
 
-  void _showAlert(String message) {
+  void _showAlert(String message, String? questionId) {
     showDialog(
       context: context,
       builder: (context) {
@@ -245,7 +260,13 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        // Scroll to the problematic question after alert is dismissed
+                        if (questionId != null && _questionKeys.containsKey(questionId)) {
+                          _scrollToQuestion(questionId);
+                        }
+                      },
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 18, vertical: 10),
@@ -344,6 +365,7 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                           ),
                         )
                       : ListView.builder(
+                          controller: _scrollController,
                           padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
                           itemCount: _questionSets.length +
                               2, // +2 for heading and welcome message
@@ -448,6 +470,10 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                                       ),
                                       const SizedBox(height: 24),
                                       ...set.questions.map((q) {
+                                        // Create GlobalKey for each question if not exists
+                                        if (!_questionKeys.containsKey(q.id)) {
+                                          _questionKeys[q.id] = GlobalKey();
+                                        }
                                         final currentVal = feedbackValues[q.id];
                                         final globalLang = OPLocalizationService
                                             .currentLanguage;
@@ -457,6 +483,7 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                                             q.questionm,
                                             globalLang);
                                         return Column(
+                                          key: _questionKeys[q.id],
                                           crossAxisAlignment:
                                               CrossAxisAlignment.start,
                                           children: [
@@ -829,9 +856,9 @@ class _IPDischargeEmojiPageState extends State<IPDischargeEmojiPage> {
                     child: ElevatedButton.icon(
                       onPressed: () {
                         // Validate before proceeding
-                        String? validationError = _validateFeedback();
-                        if (validationError != null) {
-                          _showAlert(validationError);
+                        Map<String, dynamic>? validationResult = _validateFeedback();
+                        if (validationResult != null) {
+                          _showAlert(validationResult['message'], validationResult['questionId']);
                           return;
                         }
 

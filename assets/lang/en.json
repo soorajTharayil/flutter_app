@@ -95,5 +95,9 @@
   "staff_recognition_description": "Please help us recognize a staff member of our hospital who may have performed services beyond your expectations.",
   "staff_name": "Staff name",
   "dear_patient": "Dear",
-  "thank_you_message": "Thank you for choosing our hospital for your healthcare needs. We work constantly to improve and meet your expectations. To serve our patients better, kindly spare a few minutes to fill this feedback form. Your opinion is of immense value to us."
+  "thank_you_message": "Thank you for choosing our hospital for your healthcare needs. We work constantly to improve and meet your expectations. To serve our patients better, kindly spare a few minutes to fill this feedback form. Your opinion is of immense value to us.",
+  "thank_you_feedback": "Thank you for taking time out to provide the feedback.",
+  "unhappy_feedback_message": "We sincerely apologize for not meeting your expectations.\nWe would like to regain your trust.\nOur executive will get in touch with you.",
+  "rate_on_google_message": "Kindly rate us on Google by clicking the link sent to you via SMS",
+  "continue_to_homepage": "Continue to homepage"
 }

@@ -40,6 +40,7 @@ class _IPDischargePatientInfoPageState
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _uhidController = TextEditingController();
+  final TextEditingController _bedNoController = TextEditingController();
   final _nameFieldKey = GlobalKey<FormFieldState<String>>();
   final _uhidFieldKey = GlobalKey<FormFieldState<String>>();
   final _wardFieldKey = GlobalKey<FormFieldState<String>>();
@@ -65,6 +66,7 @@ class _IPDischargePatientInfoPageState
     OPLocalizationService.instance.removeListener(_onLanguageChanged);
     _nameController.dispose();
     _uhidController.dispose();
+    _bedNoController.dispose();
     super.dispose();
   }
 
@@ -117,6 +119,7 @@ class _IPDischargePatientInfoPageState
       setState(() {
         bedNumbers = [];
         selectedbed_no = null;
+        _bedNoController.clear();
       });
       return;
     }
@@ -125,6 +128,7 @@ class _IPDischargePatientInfoPageState
     setState(() {
       bedNumbers = bedList;
       selectedbed_no = null; // Reset selection when ward changes
+      _bedNoController.clear();
     });
   }
 
@@ -490,8 +494,7 @@ class _IPDischargePatientInfoPageState
                     builder: (context, constraints) {
                       return TextFormField(
                         key: _bed_noFieldKey,
-                        controller:
-                            TextEditingController(text: selectedbed_no),
+                        controller: _bedNoController,
                         onChanged: (value) {
                           setState(() {
                             selectedbed_no = value;
