@@ -1,25 +1,35 @@
+import 'incident_timeline_message.dart';
+
 /// Model for individual ticket
 class Ticket {
   final String ticketId;
   final String? patientName;
   final String? patientId;
   final String? patientMobile;
+  /// Incident list: prefer over patient* when API sends employee fields.
+  final String? employeeId;
+  final String? employeeName;
   final String? concern;
   final String? department;
   final String? createdOn;
   final String? updatedOn;
   final String? status;
+  /// When `allTickets.php` includes `replymessage` for incidents (optional).
+  final List<IncidentTimelineMessage> replyMessages;
 
   Ticket({
     required this.ticketId,
     this.patientName,
     this.patientId,
     this.patientMobile,
+    this.employeeId,
+    this.employeeName,
     this.concern,
     this.department,
     this.createdOn,
     this.updatedOn,
     this.status,
+    this.replyMessages = const [],
   });
 
   factory Ticket.fromJson(Map<String, dynamic> json) {
@@ -55,6 +65,24 @@ class Ticket {
       patientMobile = json['patient_mobile']?.toString();
     }
 
+    String? employeeId;
+    String? employeeName;
+    if (json['employee'] != null && json['employee'] is Map) {
+      final em = json['employee'] as Map<String, dynamic>;
+      employeeId = em['employee_id']?.toString() ??
+          em['employeeId']?.toString() ??
+          em['id']?.toString();
+      employeeName = em['employee_name']?.toString() ??
+          em['employeeName']?.toString() ??
+          em['name']?.toString();
+    }
+    employeeId = employeeId ??
+        json['employee_id']?.toString() ??
+        json['employeeId']?.toString();
+    employeeName = employeeName ??
+        json['employee_name']?.toString() ??
+        json['employeeName']?.toString();
+
     // Extract concern
     String? concern;
     if (json['reasonText'] != null) {
@@ -87,16 +115,21 @@ class Ticket {
       status = json['status'].toString();
     }
 
+    final dynamic rm = json['replymessage'] ?? json['replyMessage'] ?? json['reply_messages'];
+
     return Ticket(
       ticketId: ticketId,
       patientName: patientName,
       patientId: patientId,
       patientMobile: patientMobile,
+      employeeId: employeeId,
+      employeeName: employeeName,
       concern: concern,
       department: department,
       createdOn: createdOn,
       updatedOn: updatedOn,
       status: status,
+      replyMessages: IncidentTimelineMessage.listFromJson(rm),
     );
   }
 }

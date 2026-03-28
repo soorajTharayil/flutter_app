@@ -4,7 +4,9 @@ import 'package:intl/intl.dart';
 import '../widgets/app_header_wrapper.dart';
 import '../config/constant.dart';
 import '../services/ticket_api_service.dart';
+import '../services/employee_complaint_navigation.dart';
 import '../model/ticket_model.dart';
+import '../widgets/incident_timeline_section.dart';
 import 'manage_ticket_page.dart';
 
 /// Page for displaying list of tickets
@@ -33,6 +35,7 @@ class _TicketListPageState extends State<TicketListPage> {
   bool _isLoading = false;
   String? _errorMessage;
   String? _uid;
+  String? _domain;
   bool _hasLoadedOnce = false;
 
   @override
@@ -148,6 +151,7 @@ class _TicketListPageState extends State<TicketListPage> {
 
       if (mounted) {
         setState(() {
+          _domain = domain;
           _ticketListResponse = response;
           _isLoading = false;
           _hasLoadedOnce = true;
@@ -203,6 +207,11 @@ class _TicketListPageState extends State<TicketListPage> {
     final statusLower = status.toLowerCase();
     if (statusLower.isEmpty) return 'Unknown';
     return statusLower[0].toUpperCase() + statusLower.substring(1);
+  }
+
+  bool _isIncidentClosed(String? status) {
+    if (status == null || status.trim().isEmpty) return false;
+    return status.trim().toLowerCase() == 'closed';
   }
 
   /// Get status color
@@ -262,6 +271,73 @@ class _TicketListPageState extends State<TicketListPage> {
     return patientName ?? patientId ?? '-';
   }
 
+  /// Incident list card: same line as web — Employee Details: Employee Id (link) … Employee Name …
+  Widget _buildIncidentEmployeeDetailsRow(Ticket ticket) {
+    final id = (ticket.employeeId?.trim().isNotEmpty == true)
+        ? ticket.employeeId!.trim()
+        : ticket.patientId?.trim();
+    final name = (ticket.employeeName?.trim().isNotEmpty == true)
+        ? ticket.employeeName!.trim()
+        : ticket.patientName?.trim();
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.person,
+          size: 16,
+          color: Colors.grey[600],
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black87,
+              ),
+              children: [
+                TextSpan(
+                  text: 'Employee Details: ',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey[700],
+                  ),
+                ),
+                if (id != null && id.isNotEmpty) ...[
+                  const TextSpan(text: 'Employee Id: '),
+                  WidgetSpan(
+                    alignment: PlaceholderAlignment.middle,
+                    child: InkWell(
+                      onTap: () => openIncidentReportDetailPage(
+                        context,
+                        ticketId: ticket.ticketId,
+                      ),
+                      child: Text(
+                        id,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: efeedorBrandGreen,
+                          fontWeight: FontWeight.w600,
+                          decoration: TextDecoration.underline,
+                        ),
+                      ),
+                    ),
+                  ),
+                  if (name != null && name.isNotEmpty)
+                    TextSpan(text: ' Employee Name: $name'),
+                ] else if (name != null && name.isNotEmpty)
+                  TextSpan(text: 'Employee Name: $name')
+                else
+                  const TextSpan(text: '-'),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   /// Navigate to manage ticket page
   void _navigateToAction(Ticket ticket) async {
     // Navigate to Manage Ticket page
@@ -272,8 +348,12 @@ class _TicketListPageState extends State<TicketListPage> {
           ticketId: ticket.ticketId,
           module: widget.moduleCode,
           uid: _uid,
-          patientName: ticket.patientName,
-          patientId: ticket.patientId,
+          patientName: widget.moduleCode == 'INCIDENT'
+              ? (ticket.employeeName ?? ticket.patientName)
+              : ticket.patientName,
+          patientId: widget.moduleCode == 'INCIDENT'
+              ? (ticket.employeeId ?? ticket.patientId)
+              : ticket.patientId,
           patientMobile: ticket.patientMobile,
         ),
       ),
@@ -321,12 +401,15 @@ class _TicketListPageState extends State<TicketListPage> {
             ),
             const SizedBox(height: 10),
 
-            // Patient Details
-            _buildInfoRow(
-              Icons.person,
-              'Patient Details',
-              _getPatientDetailsText(ticket.patientName, ticket.patientId),
-            ),
+            // Employee details (incident, tappable id) or patient details
+            if (widget.moduleCode == 'INCIDENT')
+              _buildIncidentEmployeeDetailsRow(ticket)
+            else
+              _buildInfoRow(
+                Icons.person,
+                'Patient Details',
+                _getPatientDetailsText(ticket.patientName, ticket.patientId),
+              ),
             const SizedBox(height: 10),
 
             // Concern
@@ -371,6 +454,17 @@ class _TicketListPageState extends State<TicketListPage> {
                 valueColor: _getStatusColor(ticket.status),
               ),
             ),
+
+            if (widget.moduleCode == 'INCIDENT' &&
+                _isIncidentClosed(ticket.status) &&
+                (_domain ?? '').isNotEmpty)
+              IncidentTimelineLoader(
+                domain: _domain!,
+                ticketId: ticket.ticketId,
+                moduleCode: widget.moduleCode,
+                initialMessages: ticket.replyMessages,
+              ),
+
             const SizedBox(height: 10),
 
             // Take action here - Clickable

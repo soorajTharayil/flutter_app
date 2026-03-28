@@ -1,0 +1,22 @@
+CodeIgniter 3 — fix 403 on Flutter POST to ticketsincident/* (CSRF)
+====================================================================
+Merge into application/config/config.php
+
+1) Find:  $config['csrf_exclude_uris'] = array(
+2) Add these URI strings (exactly as CI routes them, no leading slash):
+
+   'ticketsincident/update_risk_matrix',
+   'ticketsincident/edit_priority_type',
+   'ticketsincident/edit_priority_serverity',
+
+3) If csrf_exclude_uris does not exist, create it:
+
+   $config['csrf_exclude_uris'] = array(
+       'ticketsincident/update_risk_matrix',
+       'ticketsincident/edit_priority_type',
+       'ticketsincident/edit_priority_serverity',
+   );
+
+4) Clear opcode cache / redeploy. Test POST from Postman without CSRF cookie — should not return 403 from CSRF.
+
+Note: 403 can still come from Apache/mod_security or controller auth. Use Incident_mobile API (see Incident_mobile.php) for session-less mobile calls.

@@ -1,3 +1,7 @@
+import 'dart:convert';
+
+import 'incident_timeline_message.dart';
+
 /// Model for ticket detail API response
 class TicketDetail {
   final String ticketId;
@@ -13,6 +17,19 @@ class TicketDetail {
   final String? patientId;
   final String? floor;
   final String? bedNo;
+  /// Incident: reported person (replaces patient-oriented fields on web track view).
+  final String? employeeId;
+  final String? employeeName;
+  /// Incident feedback row id (PHP `feedbackid`) for assign / close payloads when API provides it.
+  final String? feedbackId;
+  /// Decoded `bf_feedback_incident.dataset` JSON (`$param` in PHP incident view).
+  final Map<String, dynamic>? incidentDataset;
+  final String? incidentOccurredOn;
+  final String? incidentSource;
+  final String? assignedTeamLeader;
+  final String? assignedProcessMonitor;
+  /// When `1`, web hides severity edit (`verified_status` on `bf_feedback_incident`).
+  final int? verifiedStatus;
 
   TicketDetail({
     required this.ticketId,
@@ -28,6 +45,15 @@ class TicketDetail {
     this.patientId,
     this.floor,
     this.bedNo,
+    this.employeeId,
+    this.employeeName,
+    this.feedbackId,
+    this.incidentDataset,
+    this.incidentOccurredOn,
+    this.incidentSource,
+    this.assignedTeamLeader,
+    this.assignedProcessMonitor,
+    this.verifiedStatus,
   });
 
   factory TicketDetail.fromJson(Map<String, dynamic> json) {
@@ -68,6 +94,59 @@ class TicketDetail {
     // Also check for bed_no at root level (fallback if not found in nested objects)
     bedNo = bedNo ?? json['bed_no']?.toString() ?? json['bedNo']?.toString() ?? json['bed_number']?.toString();
 
+    String? employeeId;
+    String? employeeName;
+    if (json['employee'] != null && json['employee'] is Map) {
+      final em = json['employee'] as Map<String, dynamic>;
+      employeeId = em['employee_id']?.toString() ??
+          em['employeeId']?.toString() ??
+          em['id']?.toString();
+      employeeName = em['employee_name']?.toString() ??
+          em['employeeName']?.toString() ??
+          em['name']?.toString();
+    }
+    employeeId = employeeId ??
+        json['employee_id']?.toString() ??
+        json['employeeId']?.toString();
+    employeeName = employeeName ??
+        json['employee_name']?.toString() ??
+        json['employeeName']?.toString();
+
+    Map<String, dynamic>? incidentDataset;
+    final rawDs = json['dataset'] ?? json['incident_dataset'] ?? json['param'];
+    if (rawDs is String && rawDs.trim().isNotEmpty) {
+      try {
+        final decoded = jsonDecode(rawDs);
+        if (decoded is Map<String, dynamic>) {
+          incidentDataset = decoded;
+        } else if (decoded is Map) {
+          incidentDataset = Map<String, dynamic>.from(decoded);
+        }
+      } catch (_) {}
+    } else if (rawDs is Map<String, dynamic>) {
+      incidentDataset = rawDs;
+    } else if (rawDs is Map) {
+      incidentDataset = Map<String, dynamic>.from(rawDs);
+    }
+
+    String? feedbackId = json['feedbackId']?.toString() ??
+        json['feedbackid']?.toString() ??
+        json['feedback_id']?.toString() ??
+        json['bf_feedback_incident_id']?.toString() ??
+        json['incident_feedback_id']?.toString() ??
+        json['bfFeedbackIncidentId']?.toString();
+    if (json['bf_feedback_incident'] != null && json['bf_feedback_incident'] is Map) {
+      final b = json['bf_feedback_incident'] as Map<String, dynamic>;
+      feedbackId = feedbackId ??
+          b['id']?.toString() ??
+          b['feedback_id']?.toString();
+    }
+    if ((feedbackId == null || feedbackId.trim().isEmpty) && incidentDataset != null) {
+      feedbackId = incidentDataset['feedback_incident_id']?.toString() ??
+          incidentDataset['bf_feedback_id']?.toString() ??
+          incidentDataset['feedback_id']?.toString();
+    }
+
     return TicketDetail(
       ticketId: json['ticketId']?.toString() ?? json['ticket_id']?.toString() ?? json['ticketID']?.toString() ?? '',
       status: json['status']?.toString(),
@@ -82,26 +161,67 @@ class TicketDetail {
       patientId: patientId,
       floor: json['floor']?.toString(),
       bedNo: bedNo,
+      employeeId: employeeId,
+      employeeName: employeeName,
+      feedbackId: feedbackId,
+      incidentDataset: incidentDataset,
+      incidentOccurredOn: json['incident_occured_in']?.toString() ??
+          json['incident_occurred_on']?.toString() ??
+          json['incidentOccurredOn']?.toString(),
+      incidentSource: json['source']?.toString(),
+      assignedTeamLeader: json['assigned_team_leader']?.toString() ??
+          json['assign_to_names']?.toString() ??
+          json['assignedTeamLeader']?.toString(),
+      assignedProcessMonitor: json['assigned_process_monitor']?.toString() ??
+          json['assign_for_process_monitor_names']?.toString() ??
+          json['assignedProcessMonitor']?.toString(),
+      verifiedStatus: _parseInt(json['verified_status'] ?? json['verifiedStatus']),
     );
   }
+}
+
+int? _parseInt(dynamic v) {
+  if (v == null) return null;
+  if (v is int) return v;
+  return int.tryParse(v.toString());
 }
 
 /// Model for ticket detail API response wrapper
 class TicketDetailResponse {
   final bool error;
   final TicketDetail ticketDetail;
+  /// Incident: `replymessage` from same payload as web track view (optional).
+  final List<IncidentTimelineMessage> replyMessages;
 
   TicketDetailResponse({
     required this.error,
     required this.ticketDetail,
+    this.replyMessages = const [],
   });
 
   factory TicketDetailResponse.fromJson(Map<String, dynamic> json) {
+    final td = Map<String, dynamic>.from(
+      json['ticketDetail'] as Map<String, dynamic>? ?? {},
+    );
+    if (td['feedbackId'] == null &&
+        td['feedbackid'] == null &&
+        td['feedback_id'] == null) {
+      final root = json['feedbackId'] ??
+          json['feedbackid'] ??
+          json['feedback_id'] ??
+          json['bf_feedback_incident_id'] ??
+          json['incident_feedback_id'];
+      if (root != null) td['feedbackId'] = root;
+    }
+    final dynamic rm = json['replymessage'] ??
+        json['replyMessage'] ??
+        json['reply_messages'] ??
+        td['replymessage'] ??
+        td['replyMessage'];
     return TicketDetailResponse(
       error: json['error'] as bool? ?? true,
-      ticketDetail: TicketDetail.fromJson(
-        json['ticketDetail'] as Map<String, dynamic>? ?? {},
-      ),
+      ticketDetail: TicketDetail.fromJson(td),
+      replyMessages: IncidentTimelineMessage.listFromJson(rm),
     );
   }
 }

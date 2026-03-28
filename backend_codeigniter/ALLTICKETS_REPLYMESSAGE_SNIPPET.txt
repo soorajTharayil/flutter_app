@@ -1,0 +1,12 @@
+Mobile list + ticket detail: include the same rows as web `$department->replymessage`
+(table `ticket_incident_message`, keyed by ticket id).
+
+1) allTickets.php — for each ticket JSON object where module is incident, add:
+   "replymessage": [ ... ]
+   Load with the same query/order as the closed-tickets controller (e.g. WHERE ticketid = ? ORDER BY created_on ASC).
+   Each row: same column names as PHP uses in the view (ticket_status, created_on, action, reply, rca_tool, …).
+
+2) ticketDetail.php — include the same "replymessage" array at the top level of the JSON response
+   (or inside ticketDetail) so the app can lazy-load timeline when the list payload omits it.
+
+Flutter reads: replymessage | replyMessage | reply_messages.

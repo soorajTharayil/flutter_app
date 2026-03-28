@@ -291,6 +291,8 @@ class TicketApiService {
     String? reason,
     String? departmentTransfer,
     String? sourceDepartmentTransfer,
+    /// Merged into the JSON body (e.g. incident assign users, `assign_due_date`, `rca_method`, …).
+    Map<String, dynamic>? additionalPayload,
   }) async {
     // Build URL
     final apiUrl = 'https://$domain.efeedor.com/api/save-ticket-details.php';
@@ -341,6 +343,10 @@ class TicketApiService {
 
     if (status == 'Transfered' && departmentId != null && departmentId.isNotEmpty) {
       payload['sourceDepartmentTransfer'] = departmentId; // Support both field names
+    }
+
+    if (additionalPayload != null && additionalPayload.isNotEmpty) {
+      payload.addAll(additionalPayload);
     }
 
     final body = jsonEncode(payload);
