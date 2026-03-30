@@ -14,6 +14,7 @@ import 'package:devkitflutter/ui/user_activity_dashboard_page.dart';
 import 'package:devkitflutter/config/constant.dart';
 import 'package:devkitflutter/widgets/app_header_wrapper.dart';
 import 'package:devkitflutter/widgets/hospital_logo_widget.dart';
+import 'package:devkitflutter/services/hospital_logo_service.dart';
 import 'package:devkitflutter/services/department_service.dart' as dept_service;
 import 'package:devkitflutter/services/offline_storage_service.dart';
 import 'package:devkitflutter/services/feedback_preloader.dart';
@@ -36,6 +37,10 @@ class _HomePageState extends State<HomePage> {
   bool _isLoadingPermissions = true;
   int _offlineFeedbackCount = 0;
   Map<int, bool> _hoveredItems = {};
+
+  /// Some domains use different web URL paths for the same module.
+  /// Example: `sagarjnrwc` uses `/pcf` instead of `/pcrf` for IP Concern/Request.
+  static const List<String> _pcfWebUrlDomains = ['sagarjnrwc'];
 
   @override
   void initState() {
@@ -115,7 +120,8 @@ class _HomePageState extends State<HomePage> {
       'icon': Icons.warning_amber_rounded,
       'color': Colors.pinkAccent,
       'desc': 'Raise concerns or submit requests for in-patients',
-      'urlPath': '/pcrf', // Web URL path
+      // Web URL path candidates (some domains use `/pcf` instead of `/pcrf`)
+      'urlPaths': ['/pcrf', '/pcf'],
       'permissionKey': 'PCF-MODULE',
     },
     {
@@ -263,6 +269,9 @@ class _HomePageState extends State<HomePage> {
 
     if (shouldLogout != true) return;
 
+    // Clear cached hospital logo so switching domains shows correct branding.
+    await HospitalLogoService.clearCache();
+
     // Clear login state from SharedPreferences (CHANGE 1: Keep domain values)
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('is_logged_in');
@@ -291,7 +300,7 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _handleModuleTap(Map<String, dynamic> module) async {
     // Check if module has a web URL path
-    if (module.containsKey('urlPath')) {
+    if (module.containsKey('urlPath') || module.containsKey('urlPaths')) {
       try {
         // Get the domain from SharedPreferences
         final domain = await dept_service.getDomainFromPrefs();
@@ -301,7 +310,24 @@ class _HomePageState extends State<HomePage> {
         }
 
         // Build the full URL
-        final urlPath = module['urlPath'] as String;
+        final String urlPath;
+        if (module.containsKey('urlPaths')) {
+          final urlPaths = (module['urlPaths'] as List).cast<String>();
+          final domainLower = domain.toLowerCase();
+
+          final pcrfPath = urlPaths.firstWhere(
+            (p) => p.toLowerCase().contains('pcrf'),
+            orElse: () => urlPaths.first,
+          );
+          final pcfPath = urlPaths.firstWhere(
+            (p) => p.toLowerCase().contains('pcf'),
+            orElse: () => urlPaths.last,
+          );
+
+          urlPath = _pcfWebUrlDomains.contains(domainLower) ? pcfPath : pcrfPath;
+        } else {
+          urlPath = module['urlPath'] as String;
+        }
         final url = 'https://$domain.efeedor.com$urlPath';
         final title = module['title'] as String;
 

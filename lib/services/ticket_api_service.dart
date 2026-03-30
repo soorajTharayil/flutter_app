@@ -34,9 +34,17 @@ class TicketApiService {
     );
 
     // Prepare request body
+    // Some backend implementations expect different key names for the same values.
+    // Sending multiple variants keeps the dashboard counts aligned with list/details.
     final body = jsonEncode({
+      // User id variants
       'uid': uid,
+      'user_id': uid,
+      'userid': uid,
+      'userId': uid,
+      // Module variants
       'module': moduleCode,
+      'moduleCode': moduleCode,
     });
 
     print('🔵 [DASHBOARD API] ========================================');
