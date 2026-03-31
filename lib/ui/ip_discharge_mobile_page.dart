@@ -50,7 +50,14 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
       final mobileNumber = _mobileController.text;
 
       // Check if cached IP data exists (from dashboard preload)
-      final hasCachedData = await IPDataLoader.hasCachedIpData();
+      bool hasCachedData = await IPDataLoader.hasCachedIpData();
+
+      // If dashboard preload is missing, try loading cache now for this mobile.
+      // This avoids blocking valid users on domains where dashboard preload may fail intermittently.
+      if (!hasCachedData) {
+        await IPDataLoader.preloadIpData(mobileNumber);
+        hasCachedData = await IPDataLoader.hasCachedIpData();
+      }
 
       if (!hasCachedData) {
         // No cached data available - show error message

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:devkitflutter/services/op_localization_service.dart';
 import 'package:devkitflutter/config/constant.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 /// Language selector button for OP module only
 /// This button only affects OP pages, not Dashboard or other modules
@@ -16,6 +17,7 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
     with SingleTickerProviderStateMixin {
   OverlayEntry? _overlayEntry;
   bool _isPopupOpen = false;
+  String _domain = '';
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
   late Animation<double> _fadeAnimation;
@@ -24,6 +26,7 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
   @override
   void initState() {
     super.initState();
+    _loadDomain();
     // Listen to OP localization changes only
     OPLocalizationService.instance.addListener(_onLanguageChanged);
     _animationController = AnimationController(
@@ -48,6 +51,22 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
         curve: Curves.easeOutBack,
       ),
     );
+  }
+
+  Future<void> _loadDomain() async {
+    final prefs = await SharedPreferences.getInstance();
+    final domain = prefs.getString('domain') ?? '';
+    if (!mounted) return;
+    setState(() {
+      _domain = domain.toLowerCase();
+    });
+
+    // For sagarjnrwc, Malayalam should not be available.
+    // If previously selected, fall back to English.
+    if (_domain == 'sagarjnrwc' &&
+        OPLocalizationService.currentLanguage == 'ml') {
+      await OPLocalizationService.setLanguage('en');
+    }
   }
 
   @override
@@ -281,14 +300,16 @@ class _LanguageSelectorButtonState extends State<LanguageSelectorButton>
                                               'ಕನ್ನಡ',
                                               overlayContext,
                                             ),
-                                            const SizedBox(height: 12),
-                                            _buildLanguageItem(
-                                              'ml',
-                                              'മ',
-                                              'Malayalam',
-                                              'മലയാളം',
-                                              overlayContext,
-                                            ),
+                                            if (_domain != 'sagarjnrwc') ...[
+                                              const SizedBox(height: 12),
+                                              _buildLanguageItem(
+                                                'ml',
+                                                'മ',
+                                                'Malayalam',
+                                                'മലയാളം',
+                                                overlayContext,
+                                              ),
+                                            ],
                                           ],
                                         ),
                                       ),
