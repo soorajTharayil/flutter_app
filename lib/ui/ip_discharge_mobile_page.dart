@@ -56,7 +56,11 @@ class _IPDischargeMobilePageState extends State<IPDischargeMobilePage> {
       // This avoids blocking valid users on domains where dashboard preload may fail intermittently.
       if (!hasCachedData) {
         await IPDataLoader.preloadIpData(mobileNumber);
-        hasCachedData = await IPDataLoader.hasCachedIpData();
+        // Validate cache for the entered mobile number (not just placeholder cache).
+        final cachedWards = await IPDataLoader.getCachedWards(mobileNumber);
+        final cachedQuestionSets =
+            await IPDataLoader.getCachedQuestionSets(mobileNumber);
+        hasCachedData = cachedWards.isNotEmpty || cachedQuestionSets.isNotEmpty;
       }
 
       if (!hasCachedData) {
