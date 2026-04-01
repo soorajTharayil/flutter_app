@@ -49,6 +49,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
   final TextEditingController _addressMessageController = TextEditingController();
   final TextEditingController _rcaController = TextEditingController();
   final TextEditingController _capaController = TextEditingController();
+  final TextEditingController _closeCommentController = TextEditingController();
   final TextEditingController _transferReasonController = TextEditingController();
   final TextEditingController _reopenReasonController = TextEditingController();
   final TextEditingController _rejectReasonController = TextEditingController();
@@ -103,6 +104,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     _addressMessageController.dispose();
     _rcaController.dispose();
     _capaController.dispose();
+    _closeCommentController.dispose();
     _transferReasonController.dispose();
     _reopenReasonController.dispose();
     _rejectReasonController.dispose();
@@ -1591,6 +1593,30 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                 fillColor: Colors.grey[50],
               ),
             ),
+            if (widget.module == 'PCF') ...[
+              const SizedBox(height: 16),
+              const Text(
+                'Resolution comment',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _closeCommentController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: 'Enter your resolution comment (visible to the patient who raised the issue)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -2182,6 +2208,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
 
     await _submitTicketDetails(
       status: 'Closed',
+      message: widget.module == 'PCF' ? _closeCommentController.text.trim() : null,
       rca: rca,
       capa: capa,
     );
@@ -2415,6 +2442,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
           _addressMessageController.clear();
           _rcaController.clear();
           _capaController.clear();
+          _closeCommentController.clear();
           _transferReasonController.clear();
           _reopenReasonController.clear();
           _rejectReasonController.clear();

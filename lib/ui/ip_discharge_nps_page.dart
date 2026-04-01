@@ -302,6 +302,8 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
       'patientid': feedbackData.uhid,
       'ward': feedbackData.ward,
       'bed_no': feedbackData.bed_no,
+      // Keep both keys to match web/Cordova and backend column mapping.
+      'bedno': feedbackData.bed_no,
       'contactnumber': feedbackData.mobileNumber,
       'patientType': 'In-Patient',
       'consultant_cat': 'General',
