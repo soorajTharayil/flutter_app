@@ -8,6 +8,7 @@ class TicketDetail {
   final String? status;
   final String? createdOn;
   final String? reasonText;
+  final String? submissionComment;
   final String? departmentName;
   final String? departDesc;
   final String? ward;
@@ -36,6 +37,7 @@ class TicketDetail {
     this.status,
     this.createdOn,
     this.reasonText,
+    this.submissionComment,
     this.departmentName,
     this.departDesc,
     this.rating,
@@ -147,11 +149,54 @@ class TicketDetail {
           incidentDataset['feedback_id']?.toString();
     }
 
+    String? readComment(dynamic value) {
+      if (value == null) return null;
+      if (value is String) {
+        final s = value.trim();
+        return s.isNotEmpty ? s : null;
+      }
+      if (value is Map) {
+        for (final v in value.values) {
+          final s = v?.toString().trim();
+          if (s != null && s.isNotEmpty) return s;
+        }
+      }
+      if (value is List) {
+        for (final v in value) {
+          final s = v?.toString().trim();
+          if (s != null && s.isNotEmpty) return s;
+        }
+      }
+      return null;
+    }
+
+    final datasetGroup = json['datasetGroup'];
+    final submissionComment = readComment(json['submissionComment']) ??
+        readComment(json['submission_comment']) ??
+        readComment(json['comment']) ??
+        readComment(json['comments']) ??
+        readComment(json['remark']) ??
+        readComment(json['remarks']) ??
+        readComment(json['other']) ??
+        readComment(datasetGroup is Map ? datasetGroup['comment'] : null) ??
+        readComment(datasetGroup is Map ? datasetGroup['comments'] : null) ??
+        readComment(datasetGroup is Map ? datasetGroup['remark'] : null) ??
+        readComment(datasetGroup is Map ? datasetGroup['remarks'] : null) ??
+        readComment(datasetGroup is Map ? datasetGroup['other'] : null) ??
+        readComment(incidentDataset?['submissionComment']) ??
+        readComment(incidentDataset?['submission_comment']) ??
+        readComment(incidentDataset?['comment']) ??
+        readComment(incidentDataset?['comments']) ??
+        readComment(incidentDataset?['remark']) ??
+        readComment(incidentDataset?['remarks']) ??
+        readComment(incidentDataset?['other']);
+
     return TicketDetail(
       ticketId: json['ticketId']?.toString() ?? json['ticket_id']?.toString() ?? json['ticketID']?.toString() ?? '',
       status: json['status']?.toString(),
       createdOn: json['created_on']?.toString(),
       reasonText: json['reasonText']?.toString(),
+      submissionComment: submissionComment,
       departmentName: json['departmentName']?.toString(),
       departDesc: json['departDesc']?.toString(),
       ward: json['ward']?.toString(),

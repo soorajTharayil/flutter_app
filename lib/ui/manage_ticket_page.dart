@@ -170,6 +170,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
           status: apiDetail.status,
           createdOn: apiDetail.createdOn,
           reasonText: apiDetail.reasonText,
+          submissionComment: apiDetail.submissionComment,
           departmentName: apiDetail.departmentName,
           departDesc: apiDetail.departDesc,
           ward: apiDetail.ward,
@@ -2751,6 +2752,19 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                             ),
                                             isEven: false,
                                           ),
+                                          if (_ticketDetail!.submissionComment != null &&
+                                              _ticketDetail!.submissionComment!.trim().isNotEmpty)
+                                            _buildTableRow(
+                                              'comment',
+                                              Text(
+                                                _ticketDetail!.submissionComment!,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                              isEven: true,
+                                            ),
                                           
                                           // Created On (row 3 - purple)
                                           _buildTableRow(
