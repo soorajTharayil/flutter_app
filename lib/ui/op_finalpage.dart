@@ -300,7 +300,11 @@ class _YourNextScreenFinalState extends State<YourNextScreenFinal> {
       'ward': feedbackData.department,
       'contactnumber': feedbackData.mobileNumber,
       'patientType': 'Out-Patient',
-      'consultant_cat': 'General',
+      'consultant_cat': feedbackData.primaryConsultant.trim().isNotEmpty
+          ? feedbackData.department
+          : 'General',
+      if (feedbackData.primaryConsultant.trim().isNotEmpty)
+        'primary_consultant': feedbackData.primaryConsultant,
       'administratorId': 'admin001',
       'wardid': 'ward001',
       // General reasons as boolean map

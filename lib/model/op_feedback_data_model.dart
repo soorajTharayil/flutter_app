@@ -6,6 +6,8 @@ class FeedbackData {
   String uhid;
   String department;
   String mobileNumber;
+  /// sagarjnrwc OP: Primary Consultant from `department.php` → `ward[].bedno`.
+  String primaryConsultant;
 
   Map<String, int> feedbackValues;
   Map<String, Map<String, bool>> selectedReasons;
@@ -19,6 +21,7 @@ class FeedbackData {
     this.uhid = '',
     this.department = '',
     this.mobileNumber = '',
+    this.primaryConsultant = '',
     this.feedbackValues = const {},
     this.selectedReasons = const {},
     this.comments = const {},

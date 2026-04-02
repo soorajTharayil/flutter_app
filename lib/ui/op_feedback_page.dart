@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../services/department_service.dart';
+import '../services/department_service.dart' hide getDomainFromPrefs;
 import '../model/department_model.dart';
 import 'op_emoji.dart';
 import '../model/op_feedback_data_model.dart';
@@ -27,11 +27,14 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
   final _uhidFieldKey = GlobalKey<FormFieldState<String>>();
   final _mobileFieldKey = GlobalKey<FormFieldState<String>>();
   final _departmentFieldKey = GlobalKey<FormFieldState<String>>();
+  final _primaryConsultantFieldKey = GlobalKey<FormFieldState<String>>();
 
   String? selectedDepartment;
+  String? selectedPrimaryConsultant;
   List<Department> departments = [];
   bool isLoadingDepartments = true;
   bool _hasValidatedOnce = false;
+  String? _domain;
 
   @override
   void initState() {
@@ -44,6 +47,11 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
   /// Load departments from cache, fallback to API if cache is empty (first launch)
   Future<void> _loadCachedDepartments() async {
     try {
+      final domain = await getDomainFromPrefs();
+      if (mounted) {
+        setState(() => _domain = domain);
+      }
+
       final cachedDepartments = await OPDataLoader.getCachedDepartments();
 
       // If cache is empty (first launch), load from API
@@ -81,9 +89,11 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
 
   Future<void> loadDepartments() async {
     try {
+      final domain = await getDomainFromPrefs();
       final fetchedDepartments = await fetchDepartments('123');
       if (mounted) {
         setState(() {
+          _domain = domain;
           departments = fetchedDepartments;
           isLoadingDepartments = false;
         });
@@ -184,6 +194,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                                 : null,
                           ),
                           buildDropdown(),
+                          if (_isSagarJnrWc) buildPrimaryConsultantDropdown(),
                           const SizedBox(height: 16),
                           buildTextField(
                             label: '${context.opTranslate('mobile_number')} *',
@@ -300,6 +311,8 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                 uhid: uhidController.text,
                 department: selectedDepartment!,
                 mobileNumber: mobileController.text,
+                primaryConsultant:
+                    _isSagarJnrWc ? (selectedPrimaryConsultant ?? '') : '',
               ),
             ),
           ),
@@ -354,12 +367,118 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
     );
   }
 
+  bool get _isSagarJnrWc => _domain == 'sagarjnrwc';
+
+  List<String> _consultantsForSelectedSpeciality() {
+    if (selectedDepartment == null) return [];
+    for (final d in departments) {
+      if (d.title == selectedDepartment) return d.bedno;
+    }
+    return [];
+  }
+
+  Widget buildPrimaryConsultantDropdown() {
+    final names = _consultantsForSelectedSpeciality();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Primary Consultant *',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        selectedDepartment == null
+            ? Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F3F6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    'Select Speciality first',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              )
+            : names.isEmpty
+                ? Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F3F6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'No primary consultants for this speciality',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  )
+                : DropdownButtonFormField<String>(
+                    key: _primaryConsultantFieldKey,
+                    isExpanded: true,
+                    value: selectedPrimaryConsultant != null &&
+                            names.contains(selectedPrimaryConsultant)
+                        ? selectedPrimaryConsultant
+                        : null,
+                    decoration: inputDecoration('Primary Consultant').copyWith(
+                      prefixIcon: const Icon(Icons.person_outline),
+                    ),
+                    items: names
+                        .map(
+                          (n) => DropdownMenuItem<String>(
+                            value: n,
+                            child: Text(
+                              n,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        selectedPrimaryConsultant = value;
+                      });
+                      if (_hasValidatedOnce &&
+                          _primaryConsultantFieldKey.currentState != null) {
+                        _primaryConsultantFieldKey.currentState!.validate();
+                      }
+                    },
+                    validator: (value) {
+                      if (!_isSagarJnrWc) return null;
+                      if (names.isEmpty) return null;
+                      if (value == null || value.isEmpty) {
+                        return 'Required';
+                      }
+                      return null;
+                    },
+                  ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
   Widget buildDropdown() {
+    final deptLabel = _isSagarJnrWc
+        ? 'Speciality *'
+        : '${context.opTranslate('select_department').replaceAll('Select ', '')} *';
+    final deptHint = _isSagarJnrWc
+        ? 'Select Speciality'
+        : context.opTranslate('select_department');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-            '${context.opTranslate('select_department').replaceAll('Select ', '')} *',
+            deptLabel,
             style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         const SizedBox(height: 6),
         isLoadingDepartments
@@ -398,8 +517,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                     key: _departmentFieldKey,
                     isExpanded: true,
                     value: selectedDepartment,
-                    decoration: inputDecoration(
-                            context.opTranslate('select_department'))
+                    decoration: inputDecoration(deptHint)
                         .copyWith(prefixIcon: const Icon(Icons.local_hospital)),
                     items: departments
                         .map((dept) => DropdownMenuItem(
@@ -414,6 +532,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                     onChanged: (value) {
                       setState(() {
                         selectedDepartment = value;
+                        selectedPrimaryConsultant = null;
                       });
                       // After first validation attempt, validate this field when it changes
                       if (_hasValidatedOnce &&
