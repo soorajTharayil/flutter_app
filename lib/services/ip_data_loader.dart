@@ -204,6 +204,47 @@ class IPDataLoader {
     return [];
   }
 
+  /// Consultants from cached `ward.php` response (`consultant` array). Used for sagarjnrwc IP form only.
+  static Future<List<ConsultantSpeciality>> getCachedConsultants(
+      String mobileNumber) async {
+    try {
+      final domain = await getDomainFromPrefs();
+      if (domain.isEmpty) {
+        return [];
+      }
+
+      final prefs = await SharedPreferences.getInstance();
+
+      String cacheKey = _getWardCacheKey(mobileNumber, domain);
+      String? cached = prefs.getString(cacheKey);
+
+      if (cached == null) {
+        const String placeholderMobile = '0000000000';
+        cacheKey = _getWardCacheKey(placeholderMobile, domain);
+        cached = prefs.getString(cacheKey);
+      }
+
+      if (cached == null) {
+        return [];
+      }
+
+      final cachedData = jsonDecode(cached);
+      final data = cachedData['data'] as Map<String, dynamic>?;
+      if (data == null) {
+        return [];
+      }
+
+      final List<dynamic> raw = data['consultant'] as List<dynamic>? ?? [];
+      return raw
+          .whereType<Map>()
+          .map((m) => ConsultantSpeciality.fromJson(Map<String, dynamic>.from(m)))
+          .where((c) => c.title.isNotEmpty && c.title != 'ALL')
+          .toList();
+    } catch (e) {
+      return [];
+    }
+  }
+
   /// Get cached question sets for a mobile number
   /// Returns cached data even if expired (for offline support)
   /// Falls back to placeholder mobile cache if specific mobile cache not found

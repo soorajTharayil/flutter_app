@@ -53,6 +53,14 @@ class _IPDischargePatientInfoPageState
   bool isLoadingWards = true;
   bool _hasValidatedOnce = false;
 
+  /// Only `sagarjnrwc`: speciality + primary consultant from cached `ward.php` → `consultant`.
+  String? _domain;
+  List<ConsultantSpeciality> _consultants = [];
+  String? _selectedSpecialityTitle;
+  String? _selectedPrimaryConsultant;
+
+  bool get _isSagarJnrWc => _domain == 'sagarjnrwc';
+
   @override
   void initState() {
     super.initState();
@@ -80,14 +88,22 @@ class _IPDischargePatientInfoPageState
 
   Future<void> _loadWards() async {
     try {
+      final domain = await getDomainFromPrefs();
       // ONLY use cached data - never make API calls from this page
       // This ensures full offline support
       List<Ward> cachedWards =
           await IPDataLoader.getCachedWards(widget.mobileNumber);
+      List<ConsultantSpeciality> consultants = [];
+      if (domain == 'sagarjnrwc') {
+        consultants =
+            await IPDataLoader.getCachedConsultants(widget.mobileNumber);
+      }
 
       if (mounted) {
         setState(() {
+          _domain = domain;
           wards = cachedWards;
+          _consultants = consultants;
           isLoadingWards = false;
         });
 
@@ -133,6 +149,37 @@ class _IPDischargePatientInfoPageState
   }
 
   void _navigateToEmojiPage() async {
+    if (_isSagarJnrWc && _consultants.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(context.opTranslate('failed_to_load')),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if (_isSagarJnrWc) {
+      if (_selectedSpecialityTitle == null ||
+          _selectedSpecialityTitle!.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select Speciality'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+      if (_selectedPrimaryConsultant == null ||
+          _selectedPrimaryConsultant!.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please select Primary Consultant'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+    }
     if (_formKey.currentState!.validate()) {
       final feedbackData = IPFeedbackData(
         name: _nameController.text,
@@ -140,6 +187,9 @@ class _IPDischargePatientInfoPageState
         mobileNumber: widget.mobileNumber,
         ward: selectedWard!,
         bed_no: selectedbed_no!,
+        speciality: _isSagarJnrWc ? (_selectedSpecialityTitle ?? '') : '',
+        primaryConsultant:
+            _isSagarJnrWc ? (_selectedPrimaryConsultant ?? '') : '',
       );
 
       Navigator.push(
@@ -244,6 +294,12 @@ class _IPDischargePatientInfoPageState
                           buildWardDropdown(),
                           const SizedBox(height: 20),
                           buildbed_noDropdown(),
+                          if (_isSagarJnrWc) ...[
+                            const SizedBox(height: 4),
+                            buildSpecialityDropdown(),
+                            const SizedBox(height: 20),
+                            buildPrimaryConsultantDropdown(),
+                          ],
                           // <-- SAME GAP AS NAME–UHID
                         ],
                       ),
@@ -442,6 +498,159 @@ class _IPDischargePatientInfoPageState
                   );
                 },
               ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  List<String> _primaryConsultantsForSelectedSpeciality() {
+    if (_selectedSpecialityTitle == null) return [];
+    final m = _consultants.where((c) => c.title == _selectedSpecialityTitle);
+    if (m.isEmpty) return [];
+    return m.first.consultants;
+  }
+
+  Widget buildSpecialityDropdown() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Speciality *',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        _consultants.isEmpty
+            ? Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F3F6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    context.opTranslate('failed_to_load'),
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              )
+            : DropdownButtonFormField<String>(
+                isExpanded: true,
+                value: _selectedSpecialityTitle != null &&
+                        _consultants.any((c) => c.title == _selectedSpecialityTitle)
+                    ? _selectedSpecialityTitle
+                    : null,
+                decoration: inputDecoration('Select Speciality').copyWith(
+                  prefixIcon: const Icon(Icons.medical_services_outlined),
+                ),
+                items: _consultants
+                    .map(
+                      (c) => DropdownMenuItem<String>(
+                        value: c.title,
+                        child: Text(
+                          c.title,
+                          overflow: TextOverflow.ellipsis,
+                          maxLines: 2,
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (value) {
+                  setState(() {
+                    _selectedSpecialityTitle = value;
+                    _selectedPrimaryConsultant = null;
+                  });
+                  if (_hasValidatedOnce) {
+                    _formKey.currentState?.validate();
+                  }
+                },
+                validator: (value) =>
+                    (value == null || value.isEmpty) ? 'Required' : null,
+              ),
+        const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget buildPrimaryConsultantDropdown() {
+    final names = _primaryConsultantsForSelectedSpeciality();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Primary Consultant *',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        ),
+        const SizedBox(height: 6),
+        _selectedSpecialityTitle == null
+            ? Container(
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1F3F6),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Center(
+                  child: Text(
+                    'Select Speciality first',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              )
+            : names.isEmpty
+                ? Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F3F6),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'No primary consultants for this speciality',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  )
+                : DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: _selectedPrimaryConsultant != null &&
+                            names.contains(_selectedPrimaryConsultant)
+                        ? _selectedPrimaryConsultant
+                        : null,
+                    decoration: inputDecoration('Select Primary Consultant')
+                        .copyWith(
+                      prefixIcon: const Icon(Icons.person_outline),
+                    ),
+                    items: names
+                        .map(
+                          (n) => DropdownMenuItem<String>(
+                            value: n,
+                            child: Text(
+                              n,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 2,
+                            ),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      setState(() {
+                        _selectedPrimaryConsultant = value;
+                      });
+                      if (_hasValidatedOnce) {
+                        _formKey.currentState?.validate();
+                      }
+                    },
+                    validator: (value) =>
+                        (value == null || value.isEmpty) ? 'Required' : null,
+                  ),
         const SizedBox(height: 16),
       ],
     );

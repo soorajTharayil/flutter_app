@@ -47,6 +47,36 @@ class Ward {
   }
 }
 
+/// Speciality + primary consultants from `ward.php` → `consultant[]` (e.g. sagarjnrwc).
+class ConsultantSpeciality {
+  final String title;
+  final String guid;
+  final List<String> consultants;
+
+  ConsultantSpeciality({
+    required this.title,
+    required this.guid,
+    this.consultants = const [],
+  });
+
+  factory ConsultantSpeciality.fromJson(Map<String, dynamic> json) {
+    final List<String> names = [];
+    if (json['bedno'] is List) {
+      for (final e in json['bedno'] as List) {
+        final s = e.toString().trim();
+        if (s.isNotEmpty) {
+          names.add(s);
+        }
+      }
+    }
+    return ConsultantSpeciality(
+      title: json['title']?.toString() ?? '',
+      guid: json['guid']?.toString() ?? '',
+      consultants: names,
+    );
+  }
+}
+
 class bed_no {
   final String title;
   final String id;

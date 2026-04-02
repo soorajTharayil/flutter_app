@@ -306,7 +306,11 @@ class _IPDischargeNpsPageState extends State<IPDischargeNpsPage> {
       'bedno': feedbackData.bed_no,
       'contactnumber': feedbackData.mobileNumber,
       'patientType': 'In-Patient',
-      'consultant_cat': 'General',
+      'consultant_cat': feedbackData.speciality.trim().isNotEmpty
+          ? feedbackData.speciality
+          : 'General',
+      if (feedbackData.primaryConsultant.trim().isNotEmpty)
+        'primary_consultant': feedbackData.primaryConsultant,
       'administratorId': 'admin001',
       'wardid': 'ward001',
       // General reasons as boolean map

@@ -7,6 +7,10 @@ class IPFeedbackData {
   String mobileNumber;
   String ward;
   String bed_no;
+  /// sagarjnrwc IP: speciality title from `ward.php` → `consultant[]`.
+  String speciality;
+  /// sagarjnrwc IP: name from selected speciality's `bedno` list.
+  String primaryConsultant;
 
   Map<String, int> feedbackValues;
   Map<String, Map<String, bool>> selectedReasons;
@@ -21,6 +25,8 @@ class IPFeedbackData {
     this.mobileNumber = '',
     this.ward = '',
     this.bed_no = '',
+    this.speciality = '',
+    this.primaryConsultant = '',
     this.feedbackValues = const {},
     this.selectedReasons = const {},
     this.comments = const {},
