@@ -129,5 +129,75 @@ class OPDataLoader {
     }
     return [];
   }
+
+  static Future<void> _persistOpQuestionSetsCache(
+    String department,
+    List<QuestionSet> sets,
+  ) async {
+    if (sets.isEmpty) return;
+    final prefs = await SharedPreferences.getInstance();
+    final cacheKey = '$_questionSetsKeyPrefix$department';
+    final questionSetsJson = sets.map((qs) => qs.toJson()).toList();
+    await prefs.setString(
+      cacheKey,
+      jsonEncode({
+        'timestamp': DateTime.now().millisecondsSinceEpoch,
+        'data': {'question_set': questionSetsJson},
+      }),
+    );
+  }
+
+  /// OP navigation: for **sagarjnrwc** only, resolves missing per-speciality caches
+  /// (`department.php` returns one global [question_set] for all specialities; preload
+  /// can miss keys or titles can mismatch). Other domains: same as [getCachedQuestionSets].
+  static Future<List<QuestionSet>> loadQuestionSetsForOpDepartment(
+    String department,
+  ) async {
+    final domain = await getDomainFromPrefs();
+    if (domain != 'sagarjnrwc') {
+      return getCachedQuestionSets(department);
+    }
+
+    final deptKey = department.trim();
+
+    var list = await getCachedQuestionSets(deptKey);
+    if (list.isNotEmpty) {
+      return list;
+    }
+
+    if (deptKey != department) {
+      list = await getCachedQuestionSets(department);
+      if (list.isNotEmpty) {
+        await _persistOpQuestionSetsCache(deptKey, list);
+        return list;
+      }
+    }
+
+    try {
+      final depts = await getCachedDepartments();
+      for (final d in depts) {
+        if (d.title.trim() == deptKey) {
+          continue;
+        }
+        for (final key in <String>{d.title, d.title.trim()}) {
+          final alt = await getCachedQuestionSets(key);
+          if (alt.isNotEmpty) {
+            await _persistOpQuestionSetsCache(deptKey, alt);
+            return alt;
+          }
+        }
+      }
+    } catch (_) {}
+
+    try {
+      final fresh = await op_question_service.fetchQuestionSets('123', deptKey);
+      if (fresh.isNotEmpty) {
+        await _persistOpQuestionSetsCache(deptKey, fresh);
+        return fresh;
+      }
+    } catch (_) {}
+
+    return [];
+  }
 }
 

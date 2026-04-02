@@ -57,7 +57,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
         // Reload from cache only (no API calls for offline support)
         // Cached question sets already contain all multilingual fields
         // (categoryk, categorym, questionk, questionm, titlek, titlem)
-        final cachedQuestionSets = await OPDataLoader.getCachedQuestionSets(
+        final cachedQuestionSets =
+            await OPDataLoader.loadQuestionSetsForOpDepartment(
           widget.feedbackData.department,
         );
 

@@ -293,12 +293,11 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
     );
   }
 
-  /// Navigate to emoji page using cached question sets (NO API CALL)
+  /// Navigate to emoji page using cached question sets (sagarjnrwc may fetch/cache)
   void _navigateToEmojiPage() async {
     try {
-      // Get cached question sets for selected department
       final cachedQuestionSets =
-          await OPDataLoader.getCachedQuestionSets(selectedDepartment!);
+          await OPDataLoader.loadQuestionSetsForOpDepartment(selectedDepartment!);
 
       if (mounted) {
         Navigator.push(
