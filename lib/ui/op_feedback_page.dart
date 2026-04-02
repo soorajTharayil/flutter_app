@@ -54,18 +54,22 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
 
       final cachedDepartments = await OPDataLoader.getCachedDepartments();
 
-      // If cache is empty (first launch), load from API
-      if (cachedDepartments.isEmpty) {
-        // Fallback to API call for first launch
+      // If cache is empty (first launch), load from API.
+      // On `sagarjnrwc`, older cached data might not include `bedno` (so
+      // Primary Consultant dropdown becomes empty). If `bedno` is missing
+      // for all departments, force refresh from API.
+      final bool shouldForceRefresh =
+          cachedDepartments.isEmpty ||
+          (domain == 'sagarjnrwc' &&
+              cachedDepartments.every((d) => d.bedno.isEmpty));
+
+      if (shouldForceRefresh) {
         await loadDepartments();
-      } else {
-        // Use cached data
-        if (mounted) {
-          setState(() {
-            departments = cachedDepartments;
-            isLoadingDepartments = false;
-          });
-        }
+      } else if (mounted) {
+        setState(() {
+          departments = cachedDepartments;
+          isLoadingDepartments = false;
+        });
       }
     } catch (e) {
       // If cache load fails, try API as fallback
