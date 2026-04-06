@@ -58,6 +58,8 @@ class _WebViewPageState extends State<WebViewPage> {
               await _checkAndInvalidateWebSession();
               // Auto-fill credentials if available
               await _autoFillCredentials();
+              // ISRF + `src=Link` (sagarjnrwc): same as web — submit login so user lands on the form.
+              await _maybeAutoSubmitIsrfLogin();
             },
             onWebResourceError: (WebResourceError error) {
               setState(() {
@@ -129,6 +131,53 @@ class _WebViewPageState extends State<WebViewPage> {
       ''';
       await _controller!.runJavaScript(jsCode);
     }
+  }
+
+  bool _isIsrfLinkAutoLoginUrl() {
+    try {
+      final u = Uri.parse(widget.url);
+      if (!u.path.toLowerCase().contains('/isrf')) return false;
+      return (u.queryParameters['src'] ?? '').toLowerCase() == 'link';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// After credential fill on ISRF `?src=Link`, click LOGIN (matches web auto-login behaviour).
+  Future<void> _maybeAutoSubmitIsrfLogin() async {
+    if (_controller == null || !_isIsrfLinkAutoLoginUrl()) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final email = prefs.getString('email') ?? '';
+    final password = prefs.getString('password') ?? '';
+    if (email.isEmpty || password.isEmpty) return;
+
+    await Future.delayed(const Duration(milliseconds: 450));
+
+    final jsCode = '''
+      (function() {
+        var btn = document.querySelector('button[type="submit"]') ||
+                  document.querySelector('input[type="submit"]') ||
+                  document.querySelector('button.btn-primary') ||
+                  document.querySelector('button.btn-success');
+        if (!btn) {
+          var buttons = document.querySelectorAll('button');
+          for (var i = 0; i < buttons.length; i++) {
+            var t = (buttons[i].textContent || '').trim().toUpperCase();
+            if (t === 'LOGIN' || t.indexOf('LOGIN') >= 0) {
+              btn = buttons[i];
+              break;
+            }
+          }
+        }
+        if (btn) {
+          btn.click();
+        }
+      })();
+    ''';
+    try {
+      await _controller!.runJavaScript(jsCode);
+    } catch (_) {}
   }
 
   Future<void> _autoFillCredentials() async {

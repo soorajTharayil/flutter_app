@@ -42,6 +42,9 @@ class _HomePageState extends State<HomePage> {
   /// Example: `sagarjnrwc` uses `/pcf` instead of `/pcrf` for IP Concern/Request.
   static const List<String> _pcfWebUrlDomains = ['sagarjnrwc'];
 
+  /// `sagarjnrwc` uses `/isrf` instead of `/isrr` for Raise Internal Request.
+  static const List<String> _isrfWebUrlDomains = ['sagarjnrwc'];
+
   @override
   void initState() {
     super.initState();
@@ -129,7 +132,8 @@ class _HomePageState extends State<HomePage> {
       'icon': Icons.add_circle_outline,
       'color': Colors.orange,
       'desc': 'Create and submit internal department requests',
-      'urlPath': '/isrr', // Web URL path
+      // Web URL path candidates (some domains use `/isrf` instead of `/isrr`)
+      'urlPaths': ['/isrr', '/isrf'],
       'permissionKey': 'ISR-MODULE', // Using this permission key
     },
     {
@@ -315,20 +319,47 @@ class _HomePageState extends State<HomePage> {
           final urlPaths = (module['urlPaths'] as List).cast<String>();
           final domainLower = domain.toLowerCase();
 
-          final pcrfPath = urlPaths.firstWhere(
-            (p) => p.toLowerCase().contains('pcrf'),
-            orElse: () => urlPaths.first,
-          );
-          final pcfPath = urlPaths.firstWhere(
-            (p) => p.toLowerCase().contains('pcf'),
-            orElse: () => urlPaths.last,
-          );
+          final hasPcrfPcf = urlPaths.any((p) => p.toLowerCase().contains('pcrf')) &&
+              urlPaths.any((p) => p.toLowerCase().contains('pcf'));
+          final hasIsrrIsrf = urlPaths.any((p) => p.toLowerCase().contains('isrr')) &&
+              urlPaths.any((p) => p.toLowerCase().contains('isrf'));
 
-          urlPath = _pcfWebUrlDomains.contains(domainLower) ? pcfPath : pcrfPath;
+          if (hasPcrfPcf) {
+            final pcrfPath = urlPaths.firstWhere(
+              (p) => p.toLowerCase().contains('pcrf'),
+              orElse: () => urlPaths.first,
+            );
+            final pcfPath = urlPaths.firstWhere(
+              (p) => p.toLowerCase().contains('pcf'),
+              orElse: () => urlPaths.last,
+            );
+            urlPath = _pcfWebUrlDomains.contains(domainLower) ? pcfPath : pcrfPath;
+          } else if (hasIsrrIsrf) {
+            final isrrPath = urlPaths.firstWhere(
+              (p) => p.toLowerCase().contains('isrr'),
+              orElse: () => urlPaths.first,
+            );
+            final isrfPath = urlPaths.firstWhere(
+              (p) => p.toLowerCase().contains('isrf'),
+              orElse: () => urlPaths.last,
+            );
+            urlPath = _isrfWebUrlDomains.contains(domainLower) ? isrfPath : isrrPath;
+          } else {
+            urlPath = urlPaths.first;
+          }
         } else {
           urlPath = module['urlPath'] as String;
         }
-        final url = 'https://$domain.efeedor.com$urlPath';
+        var url = 'https://$domain.efeedor.com$urlPath';
+        // Web parity: `sagarjnrwc` ISRF uses `?src=Link` so the page can treat the session like web "Link" source (auto-login flow).
+        if (_isrfWebUrlDomains.contains(domain.toLowerCase()) &&
+            urlPath.toLowerCase().contains('isrf')) {
+          final u = Uri.parse(url);
+          url = u.replace(queryParameters: {
+            ...u.queryParameters,
+            'src': 'Link',
+          }).toString();
+        }
         final title = module['title'] as String;
 
         // Navigate to WebView page
