@@ -1532,6 +1532,67 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
   }
 
   Widget _buildStandardRcaCapaSection() {
+    if (widget.module == 'ISR') {
+      return Card(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Enter resolution comment to close the request',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black87,
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: _closeCommentController,
+                maxLines: 5,
+                decoration: InputDecoration(
+                  hintText:
+                      'Enter your resolution comment (visible to the user who raised the issue)',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _handleCloseSubmit(),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: efeedorBrandGreen,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  child: const Text(
+                    'Submit',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       shape: RoundedRectangleBorder(
@@ -2169,7 +2230,26 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     print('🟡 [DEBUG] ========================================');
     print('🟡 [DEBUG] CLOSE SUBMIT CLICKED');
     print('🟡 [DEBUG] ========================================');
-    
+
+    if (widget.module == 'ISR') {
+      final resolution = _closeCommentController.text.trim();
+      if (resolution.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please enter a resolution comment')),
+        );
+        return;
+      }
+      print('🟡 [DEBUG] Resolution (ISR): $resolution');
+      print('🟡 [DEBUG] Status: Closed');
+      print('🟡 [DEBUG] Ticket ID: ${widget.ticketId}');
+      print('🟡 [DEBUG] Module: ${widget.module}');
+      await _submitTicketDetails(
+        status: 'Closed',
+        resolutionNote: resolution,
+      );
+      return;
+    }
+
     final rca = _rcaController.text.trim();
     final capa = _capaController.text.trim();
 
@@ -2372,6 +2452,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
   Future<void> _submitTicketDetails({
     required String status,
     String? message,
+    String? resolutionNote,
     String? rca,
     String? capa,
     String? departmentId,
@@ -2414,6 +2495,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
         uid: uid,
         name: name,
         message: message,
+        resolutionNote: resolutionNote,
         rca: rca,
         capa: capa,
         departmentId: departmentId,

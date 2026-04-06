@@ -279,6 +279,7 @@ class TicketApiService {
   /// [status] - Status (Address, Closed, Transfer, Reopen)
   /// [uid] - User ID
   /// [message] - Message for Addressed status (optional)
+  /// [resolutionNote] - ISR close: resolution text (maps to DB `resolution_note`; do not use [message] for that)
   /// [rca] - RCA for Closed status (optional)
   /// [capa] - CAPA for Closed status (optional)
   /// [departmentId] - Department ID for Transfer status (optional)
@@ -293,6 +294,7 @@ class TicketApiService {
     required String uid,
     required String name,
     String? message,
+    String? resolutionNote,
     String? rca,
     String? capa,
     String? departmentId,
@@ -316,6 +318,11 @@ class TicketApiService {
     };
 
     // Add optional fields based on status
+    if (resolutionNote != null && resolutionNote.isNotEmpty) {
+      // DB column is typically `resolution_note`; some API builds only read one key shape.
+      payload['resolution_note'] = resolutionNote;
+      payload['resolutionNote'] = resolutionNote;
+    }
     if (message != null && message.isNotEmpty) {
       payload['message'] = message;
       payload['addressDetails'] = message; // Support both field names

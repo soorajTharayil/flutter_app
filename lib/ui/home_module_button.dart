@@ -307,7 +307,8 @@ class _HomePageState extends State<HomePage> {
     if (module.containsKey('urlPath') || module.containsKey('urlPaths')) {
       try {
         // Get the domain from SharedPreferences
-        final domain = await dept_service.getDomainFromPrefs();
+        final rawDomain = await dept_service.getDomainFromPrefs();
+        final domain = normalizeEfeedorSubdomain(rawDomain);
         if (domain.isEmpty) {
           Fluttertoast.showToast(msg: "Domain not found. Please login again.");
           return;

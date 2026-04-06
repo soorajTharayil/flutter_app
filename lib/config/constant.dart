@@ -10,6 +10,37 @@ Future<String> getDomainFromPrefs() async {
   return prefs.getString('domain') ?? ''; // default to empty string if not set
 }
 
+/// Bare subdomain for `https://{sub}.efeedor.com/...` (e.g. `sagarjnrwc`).
+/// Handles prefs stored as `hospital`, `hospital.efeedor.com`, or `https://hospital.efeedor.com/`.
+/// Without this, `https://$domain.efeedor.com` can become `*.efeedor.com.efeedor.com` and fail DNS on device WebViews.
+String normalizeEfeedorSubdomain(String raw) {
+  final t = raw.trim();
+  if (t.isEmpty) return '';
+  if (!t.contains('.')) return t.toLowerCase();
+  final Uri? u =
+      t.contains('://') ? Uri.tryParse(t) : Uri.tryParse('https://$t');
+  if (u == null || u.host.isEmpty) return t.toLowerCase();
+  final host = u.host.toLowerCase();
+  const suffix = '.efeedor.com';
+  if (host.endsWith(suffix)) {
+    return host.substring(0, host.length - suffix.length);
+  }
+  return host;
+}
+
+/// Fixes WebView URLs if the host was built as `tenant.efeedor.com.efeedor.com` (unresolvable).
+String normalizeEfeedorAppUrl(String urlString) {
+  final u = Uri.tryParse(urlString.trim());
+  if (u == null || u.host.isEmpty) return urlString;
+  var host = u.host.toLowerCase();
+  const doubleSuffix = '.efeedor.com.efeedor.com';
+  if (host.endsWith(doubleSuffix)) {
+    host = host.substring(0, host.length - '.efeedor.com'.length);
+    return u.replace(host: host).toString();
+  }
+  return urlString;
+}
+
 const String appName = 'Efeedor';
 
 // color for apps

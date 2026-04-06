@@ -593,7 +593,7 @@ class _IPDischargePatientInfoPageState
                 ),
                 child: Center(
                   child: Text(
-                    'Select Speciality first',
+                    context.opTranslate('select_primary_consultant_placeholder'),
                     style: TextStyle(
                       color: Colors.grey[600],
                       fontSize: 14,

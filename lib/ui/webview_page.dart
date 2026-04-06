@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:devkitflutter/config/constant.dart';
 import 'package:devkitflutter/widgets/app_header_wrapper.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:webview_flutter/webview_flutter.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Conditional imports for web vs other platforms
@@ -28,10 +31,12 @@ class _WebViewPageState extends State<WebViewPage> {
   bool _isLoading = true;
   double _loadingProgress = 0;
   String? _webViewType;
+  late final String _effectiveUrl;
 
   @override
   void initState() {
     super.initState();
+    _effectiveUrl = normalizeEfeedorAppUrl(widget.url);
     if (!kIsWeb) {
       // Only initialize WebView for mobile platforms
       _controller = WebViewController()
@@ -65,6 +70,13 @@ class _WebViewPageState extends State<WebViewPage> {
               setState(() {
                 _isLoading = false;
               });
+              // Only the main document failing should block the flow. Ads, analytics,
+              // iframes, or other subresources often hit ERR_NAME_NOT_RESOLVED while
+              // the page is already usable — avoid a scary red banner in that case.
+              if (error.isForMainFrame != true) {
+                return;
+              }
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('Error loading page: ${error.description}'),
@@ -73,14 +85,46 @@ class _WebViewPageState extends State<WebViewPage> {
               );
             },
           ),
-        )
-        ..loadRequest(Uri.parse(widget.url));
+        );
+      _registerAndroidFileUploadAndLoad();
     } else {
       // For web platform, set up iframe
-      _webViewType = webview_helper.setupWebIframe(widget.url);
+      _webViewType = webview_helper.setupWebIframe(_effectiveUrl);
       setState(() {
         _isLoading = false;
       });
+    }
+  }
+
+  /// Android WebView does not open the system file picker for `<input type="file">`
+  /// unless [AndroidWebViewController.setOnShowFileSelector] is implemented.
+  Future<void> _registerAndroidFileUploadAndLoad() async {
+    final c = _controller;
+    if (c == null) return;
+    if (defaultTargetPlatform == TargetPlatform.android) {
+      final AndroidWebViewController androidController =
+          c.platform as AndroidWebViewController;
+      await androidController.setOnShowFileSelector(_onAndroidFileSelector);
+    }
+    await c.loadRequest(Uri.parse(_effectiveUrl));
+  }
+
+  Future<List<String>> _onAndroidFileSelector(FileSelectorParams params) async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        allowMultiple: params.mode == FileSelectorMode.openMultiple,
+        type: FileType.any,
+        withData: false,
+      );
+      if (result == null || result.files.isEmpty) return [];
+      final paths = <String>[];
+      for (final f in result.files) {
+        final p = f.path;
+        if (p != null && p.isNotEmpty) paths.add(p);
+      }
+      return paths;
+    } catch (_) {
+      return [];
     }
   }
 
@@ -135,7 +179,7 @@ class _WebViewPageState extends State<WebViewPage> {
 
   bool _isIsrfLinkAutoLoginUrl() {
     try {
-      final u = Uri.parse(widget.url);
+      final u = Uri.parse(_effectiveUrl);
       if (!u.path.toLowerCase().contains('/isrf')) return false;
       return (u.queryParameters['src'] ?? '').toLowerCase() == 'link';
     } catch (_) {
