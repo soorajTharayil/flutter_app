@@ -381,6 +381,7 @@ class _TicketListPageState extends State<TicketListPage> {
 
   /// Build ticket card
   Widget _buildTicketCard(Ticket ticket) {
+    final isIsrModule = widget.moduleCode.toUpperCase() == 'ISR';
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       shape: RoundedRectangleBorder(
@@ -407,7 +408,7 @@ class _TicketListPageState extends State<TicketListPage> {
             else
               _buildInfoRow(
                 Icons.person,
-                'Patient Details',
+                isIsrModule ? 'Request reported by' : 'Patient Details',
                 _getPatientDetailsText(ticket.patientName, ticket.patientId),
               ),
             const SizedBox(height: 10),
@@ -423,8 +424,8 @@ class _TicketListPageState extends State<TicketListPage> {
             // Department
             _buildInfoRow(
               Icons.business,
-              'Department',
-              ticket.department ?? '-',
+              isIsrModule ? 'Category' : 'Department',
+              isIsrModule ? (ticket.category ?? ticket.department ?? '-') : (ticket.department ?? '-'),
             ),
             const SizedBox(height: 10),
 

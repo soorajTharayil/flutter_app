@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:http/http.dart' as http;
 import '../widgets/app_header_wrapper.dart';
 import '../config/constant.dart';
 import '../services/ticket_api_service.dart';
@@ -149,6 +151,15 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
         ticketId: widget.ticketId,
       );
 
+      String? assignedToFromDepartmentUsers;
+      if (widget.module == 'IP' || widget.module == 'OP' || widget.module == 'PCF') {
+        assignedToFromDepartmentUsers = await _resolveAssignedToFromDepartmentUsers(
+          domain: domain,
+          detail: response.ticketDetail,
+          module: widget.module,
+        );
+      }
+
       if (mounted) {
         // Merge API data with passed navigation arguments
         // API data takes precedence, but use passed data as fallback
@@ -193,7 +204,11 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
           incidentDataset: apiDetail.incidentDataset,
           incidentOccurredOn: apiDetail.incidentOccurredOn,
           incidentSource: apiDetail.incidentSource,
-          assignedTeamLeader: apiDetail.assignedTeamLeader,
+          assignedTeamLeader: pickNonEmpty(
+            apiDetail.assignedTeamLeader,
+            assignedToFromDepartmentUsers,
+            null,
+          ),
           assignedProcessMonitor: apiDetail.assignedProcessMonitor,
           verifiedStatus: apiDetail.verifiedStatus,
         );
@@ -321,6 +336,20 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
       return _ticketDetail!.reasonText!;
     }
     return '-';
+  }
+
+  /// ISR category text shown in tracking-style table.
+  String _getIsrCategoryText() {
+    if (_ticketDetail == null) return '-';
+    // ISR detail payloads can swap naming:
+    // - `departDesc` often carries dashboard "Category"
+    // - `departmentName` can carry service-request text
+    final category = (_ticketDetail!.departDesc?.trim().isNotEmpty == true)
+        ? _ticketDetail!.departDesc!.trim()
+        : (_ticketDetail!.departmentName?.trim().isNotEmpty == true)
+            ? _ticketDetail!.departmentName!.trim()
+            : '';
+    return category.isEmpty ? '-' : category;
   }
 
   /// Get patient name with ID text
@@ -477,6 +506,125 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     if (department.isEmpty) return null;
     
     return 'From $department';
+  }
+
+  String? _getAssignedTo() {
+    if (_ticketDetail == null) return null;
+    final assigned = _ticketDetail!.assignedTeamLeader?.trim() ?? '';
+    if (assigned.isEmpty ||
+        assigned == '0' ||
+        assigned == '-' ||
+        assigned.toLowerCase() == 'null') {
+      return null;
+    }
+    return assigned;
+  }
+
+  Future<String?> _resolveAssignedToFromDepartmentUsers({
+    required String domain,
+    required TicketDetail detail,
+    required String module,
+  }) async {
+    try {
+      final patientId = detail.patientId?.trim() ??
+          detail.incidentDataset?['patientid']?.toString().trim() ??
+          widget.patientId?.trim() ??
+          '';
+      final setKey = detail.setKey?.trim() ?? '';
+      final dataset = detail.incidentDataset;
+      if (patientId.isEmpty || dataset == null) return null;
+
+      String? slug;
+      final reason = dataset['reason'];
+      if (reason is Map) {
+        for (final entry in reason.entries) {
+          final value = entry.value;
+          final isSelected = value == true ||
+              value == 1 ||
+              value?.toString() == '1' ||
+              value?.toString().toLowerCase() == 'true';
+          if (isSelected) {
+            final key = entry.key.toString().trim();
+            if (key.isNotEmpty) {
+              slug = key;
+              break;
+            }
+          }
+        }
+      }
+      if (slug == null || slug.isEmpty) return null;
+
+      final uri = Uri.parse(
+        'https://$domain.efeedor.com/api/department.php?patientid=$patientId',
+      );
+      final response = await http.get(uri).timeout(const Duration(seconds: 20));
+      if (response.statusCode != 200) return null;
+
+      final body = jsonDecode(response.body);
+      if (body is! Map || body['user'] is! List) return null;
+      final users = body['user'] as List;
+
+      final names = <String>{};
+      for (final user in users) {
+        if (user is! Map) continue;
+        final firstname = user['firstname']?.toString().trim() ?? '';
+        final depRaw = user['department'];
+        if (firstname.isEmpty || depRaw == null) continue;
+
+        dynamic dep;
+        try {
+          dep = depRaw is String ? jsonDecode(depRaw) : depRaw;
+        } catch (_) {
+          continue;
+        }
+        if (dep is! Map) continue;
+        final scopeKey = module == 'IP'
+            ? 'inpatient'
+            : module == 'OP'
+                ? 'outpatient'
+                : module == 'PCF'
+                    ? 'interim'
+                    : '';
+        if (scopeKey.isEmpty) continue;
+        final scoped = dep[scopeKey];
+        if (scoped is! Map) continue;
+
+        if (setKey.isNotEmpty) {
+          final setValue = scoped[setKey];
+          if (setValue == null) continue;
+          final allowedSlugs = setValue
+              .toString()
+              .split(',')
+              .map((e) => e.trim())
+              .where((e) => e.isNotEmpty);
+          if (allowedSlugs.contains(slug)) {
+            names.add(firstname);
+          }
+        } else {
+          // Some PCF payloads omit setkey; match slug across all sets in this scope.
+          bool matched = false;
+          for (final value in scoped.values) {
+            final allowedSlugs = value
+                .toString()
+                .split(',')
+                .map((e) => e.trim())
+                .where((e) => e.isNotEmpty);
+            if (allowedSlugs.contains(slug)) {
+              matched = true;
+              break;
+            }
+          }
+          if (matched) {
+            names.add(firstname);
+          }
+        }
+      }
+
+      if (names.isEmpty) return null;
+      return names.join(',');
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Normalize status value (map UI values to canonical database values)
@@ -2653,7 +2801,9 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
-          color: isEven ? Colors.purple.shade50 : Colors.white,
+          color: widget.module == 'ISR'
+              ? (isEven ? Colors.grey.shade100 : Colors.white)
+              : (isEven ? Colors.purple.shade50 : Colors.white),
           border: Border(
             bottom: BorderSide(color: Colors.grey.shade200, width: 1),
           ),
@@ -2758,7 +2908,9 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                             )
                                           else
                                             _buildTableRow(
-                                              'Patient details',
+                                              widget.module == 'ISR'
+                                                  ? 'Request reported by'
+                                                  : 'Patient details',
                                               Column(
                                                 crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
@@ -2771,7 +2923,8 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                                       ),
                                                     ),
                                                   ],
-                                                  if (_getDepartmentInfo() != null) ...[
+                                                  if (widget.module != 'ISR' &&
+                                                      _getDepartmentInfo() != null) ...[
                                                     if (_getPatientNameWithId() != null)
                                                       const SizedBox(height: 4),
                                                     Text(
@@ -2834,6 +2987,18 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                             ),
                                             isEven: false,
                                           ),
+                                          if (widget.module == 'ISR')
+                                            _buildTableRow(
+                                              'Category',
+                                              Text(
+                                                _getIsrCategoryText(),
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                              isEven: true,
+                                            ),
                                           if (_ticketDetail!.submissionComment != null &&
                                               _ticketDetail!.submissionComment!.trim().isNotEmpty)
                                             _buildTableRow(
@@ -2846,6 +3011,21 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                                 ),
                                               ),
                                               isEven: true,
+                                            ),
+                                          if ((widget.module == 'IP' ||
+                                                  widget.module == 'OP' ||
+                                                  widget.module == 'PCF') &&
+                                              _getAssignedTo() != null)
+                                            _buildTableRow(
+                                              'Assigned to',
+                                              Text(
+                                                _getAssignedTo()!,
+                                                style: const TextStyle(
+                                                  fontSize: 14,
+                                                  color: Colors.black87,
+                                                ),
+                                              ),
+                                              isEven: false,
                                             ),
                                           
                                           // Created On (row 3 - purple)
@@ -2865,7 +3045,9 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                           _buildTableRow(
                                             widget.module == 'INCIDENT'
                                                 ? 'Incident status'
-                                                : 'Ticket Status',
+                                                : widget.module == 'ISR'
+                                                    ? 'Request status'
+                                                    : 'Ticket Status',
                                             Text(
                                               _selectedStatus,
                                               style: TextStyle(

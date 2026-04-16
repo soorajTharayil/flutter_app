@@ -12,6 +12,7 @@ class TicketDetail {
   final String? departmentName;
   final String? departDesc;
   final String? ward;
+  final String? setKey;
   final String? rating;
   final String? patientName;
   final String? patientMobile;
@@ -42,6 +43,7 @@ class TicketDetail {
     this.departDesc,
     this.rating,
     this.ward,
+    this.setKey,
     this.patientName,
     this.patientMobile,
     this.patientId,
@@ -200,6 +202,7 @@ class TicketDetail {
       departmentName: json['departmentName']?.toString(),
       departDesc: json['departDesc']?.toString(),
       ward: json['ward']?.toString(),
+      setKey: json['setkey']?.toString(),
       rating: json['rating']?.toString(),
       patientName: patientName,
       patientMobile: patientMobile,

@@ -11,6 +11,7 @@ class Ticket {
   final String? employeeName;
   final String? concern;
   final String? department;
+  final String? category;
   final String? createdOn;
   final String? updatedOn;
   final String? status;
@@ -26,6 +27,7 @@ class Ticket {
     this.employeeName,
     this.concern,
     this.department,
+    this.category,
     this.createdOn,
     this.updatedOn,
     this.status,
@@ -89,10 +91,31 @@ class Ticket {
       concern = json['reasonText'].toString();
     }
 
-    // Extract department description
+    // Extract department/service-request text
     String? department;
     if (json['departDesc'] != null) {
       department = json['departDesc'].toString();
+    }
+
+    // Extract category (ISR/web style: department.description)
+    String? category;
+    if (json['department'] != null && json['department'] is Map) {
+      final dept = json['department'] as Map<String, dynamic>;
+      final description = dept['description']?.toString().trim();
+      if (description != null && description.isNotEmpty) {
+        category = description;
+      }
+      // If departDesc duplicates reasonText, use department.name as service request text.
+      final serviceRequest = dept['name']?.toString().trim();
+      if ((department == null || department.trim().isEmpty) &&
+          serviceRequest != null &&
+          serviceRequest.isNotEmpty) {
+        department = serviceRequest;
+      }
+    }
+    if ((category == null || category.isEmpty) && json['category'] != null) {
+      final c = json['category'].toString().trim();
+      if (c.isNotEmpty) category = c;
     }
 
     // Extract created date
@@ -126,6 +149,7 @@ class Ticket {
       employeeName: employeeName,
       concern: concern,
       department: department,
+      category: category,
       createdOn: createdOn,
       updatedOn: updatedOn,
       status: status,
