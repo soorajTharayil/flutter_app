@@ -181,6 +181,11 @@ class _SignInState extends State<SignIn> {
       if (response.statusCode == 200 && responseData['status'] == 'success') {
         // Login successful - extract user data
         final userId = responseData['userid']?.toString() ?? '';
+        final empId = responseData['empid']?.toString() ??
+            responseData['emp_id']?.toString() ??
+            responseData['employeeid']?.toString() ??
+            responseData['employee_id']?.toString() ??
+            '';
         final email = responseData['email']?.toString() ?? '';
         final name = responseData['name']?.toString() ?? email;
         final mobile = responseData['mobile']?.toString() ?? '';
@@ -200,6 +205,9 @@ class _SignInState extends State<SignIn> {
         });
         await prefs.setString('user_permissions', jsonEncode(permissions));
         await prefs.setString('userid', userId);
+        // Web ISR form expects `empid` for "Employee ID" / reported-by fields.
+        // Keep both ids since other APIs use `userid`.
+        await prefs.setString('empid', empId.isNotEmpty ? empId : userId);
         await prefs.setString('email', email);
         await prefs.setString('name', name);
         await prefs.setString('mobile', mobile);

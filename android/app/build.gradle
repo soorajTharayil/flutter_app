@@ -22,7 +22,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.efeedor.feedback"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = "26.3.11579264"  // Force use installed NDK version
+    ndkVersion = "27.0.12077973"
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
