@@ -352,14 +352,19 @@ class _HomePageState extends State<HomePage> {
           urlPath = module['urlPath'] as String;
         }
         var url = 'https://$domain.efeedor.com$urlPath';
-        // Web parity: `sagarjnrwc` ISRF uses `?src=Link` so the page can treat the session like web "Link" source (auto-login flow).
-        if (_isrfWebUrlDomains.contains(domain.toLowerCase()) &&
-            urlPath.toLowerCase().contains('isrf')) {
-          final u = Uri.parse(url);
-          url = u.replace(queryParameters: {
-            ...u.queryParameters,
-            'src': 'Link',
-          }).toString();
+        if (urlPath.toLowerCase().contains('isrf')) {
+          final prefs = await SharedPreferences.getInstance();
+          final userId = (prefs.getString('userid') ?? prefs.getString('empid') ?? '').trim();
+          final patientId =
+              (prefs.getString('patientid') ?? prefs.getString('userid') ?? '').trim();
+          if (userId.isNotEmpty) {
+            final u = Uri.parse(url);
+            url = u.replace(queryParameters: {
+              ...u.queryParameters,
+              'user_id': userId,
+              if (patientId.isNotEmpty) 'patientid': patientId,
+            }).toString();
+          }
         }
         final title = module['title'] as String;
 

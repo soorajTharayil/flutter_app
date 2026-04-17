@@ -64,16 +64,29 @@ class _WebViewPageState extends State<WebViewPage> {
               });
               // Check if web session should be invalidated
               await _checkAndInvalidateWebSession();
+              if (_isIsrfUserIdAutoLoginUrl()) {
+                if (mounted) {
+                  setState(() {
+                    _isLoading = true;
+                  });
+                }
+                await _runIsrfUserIdAutoLoginFlow();
+              }
               // ISRF pages expect profile in localStorage (`ehandor`) for the menu/user block.
               // App auto-login fills credentials but doesn't populate that web localStorage.
               await _seedIsrfLocalStorageProfile();
               // Auto-fill credentials if available
               await _autoFillCredentials();
-              // ISRF + `src=Link` (sagarjnrwc): same as web — submit login so user lands on the form.
+              // ISRF + `src=Link`: click LOGIN when requested by link mode.
               await _maybeAutoSubmitIsrfLogin();
               // Some form pages render an empty profile block in the menu on mobile WebView.
               // Fill it from app profile when backend binding is blank.
               await _hydrateWebMenuProfile();
+              if (mounted) {
+                setState(() {
+                  _isLoading = false;
+                });
+              }
             },
             onWebResourceError: (WebResourceError error) {
               setState(() {
@@ -459,6 +472,115 @@ class _WebViewPageState extends State<WebViewPage> {
     }
   }
 
+  bool _isIsrfUserIdAutoLoginUrl() {
+    try {
+      final u = Uri.parse(_effectiveUrl);
+      if (!u.path.toLowerCase().contains('/isrf')) return false;
+      final userId = (u.queryParameters['user_id'] ?? '').trim();
+      return userId.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> _runIsrfUserIdAutoLoginFlow() async {
+    if (_controller == null || !_isIsrfUserIdAutoLoginUrl()) return;
+    // Angular/bootstrap can initialize after first paint; retry briefly.
+    for (var i = 0; i < 12; i++) {
+      try {
+        await _controller!.runJavaScript('''
+          (function() {
+            try {
+              if (window.__isrfUserIdAutoLoginStatus === 'done' ||
+                  window.__isrfUserIdAutoLoginStatus === 'pending') {
+                return;
+              }
+              var urlParams = new URLSearchParams(window.location.search);
+              var userIdFromUrl = (urlParams.get('user_id') || '').trim();
+              if (!userIdFromUrl) return;
+              var patientIdFromUrl = (urlParams.get('patientid') || '').trim();
+
+              if (!window.angular) return;
+              var appEl = document.querySelector('[ng-app]') || document.body;
+              var ng = angular.element(appEl);
+              if (!ng || !ng.injector || !ng.injector()) return;
+
+              var injector = ng.injector();
+              var rootScope = injector.get('\$rootScope');
+              var httpSvc = injector.get('\$http');
+              var scope = angular.element(document.body).scope && angular.element(document.body).scope();
+              if (!rootScope || !httpSvc || !rootScope.baseurl_main) return;
+
+              window.__isrfUserIdAutoLoginStatus = 'pending';
+
+              // Prevent showing login step while auto-login runs.
+              if (scope) {
+                scope.step0 = false;
+                scope.step1 = false;
+              }
+              rootScope.loader = true;
+
+              httpSvc.post(rootScope.baseurl_main + '/login_userid.php', {
+                userid: userIdFromUrl
+              }).then(function(res) {
+                var response = (res && res.data) ? res.data : {};
+                if ((response.status || '').toString().toLowerCase() !== 'success') {
+                  window.__isrfUserIdAutoLoginStatus = 'failed';
+                  rootScope.loader = false;
+                  return;
+                }
+
+                if (patientIdFromUrl && !response.patientid) {
+                  response.patientid = patientIdFromUrl;
+                }
+
+                // Match manual-login session shape in web app.
+                rootScope.profilen = response;
+                rootScope.adminId = response.userid || userIdFromUrl;
+                rootScope.loginactive = true;
+
+                if (scope) {
+                  scope.loginemail = response.email || '';
+                  scope.loginid = response.empid || response.userid || userIdFromUrl;
+                  scope.loginname = response.name || '';
+                  scope.loginnumber = response.mobile || '';
+                  scope.profiled = response;
+                  scope.step0 = false;
+                  scope.step1 = true;
+                }
+
+                localStorage.setItem('ehandor', JSON.stringify(response));
+                localStorage.setItem('profilen', JSON.stringify(response));
+                localStorage.setItem('profile', JSON.stringify(response));
+
+                rootScope.loader = false;
+                window.__isrfUserIdAutoLoginStatus = 'done';
+                try { rootScope.\$applyAsync(); } catch (e) {}
+              }).catch(function() {
+                window.__isrfUserIdAutoLoginStatus = 'failed';
+                rootScope.loader = false;
+                if (scope) {
+                  scope.step0 = true;
+                  scope.step1 = false;
+                }
+              });
+            } catch (e) {}
+          })();
+        ''');
+
+        final statusObj = await _controller!.runJavaScriptReturningResult(
+            "window.__isrfUserIdAutoLoginStatus || ''");
+        final status = statusObj.toString().toLowerCase();
+        if (status.contains('done') || status.contains('failed')) {
+          break;
+        }
+      } catch (_) {
+        // keep retrying briefly
+      }
+      await Future.delayed(const Duration(milliseconds: 250));
+    }
+  }
+
   Future<void> _seedIsrfLocalStorageProfile() async {
     if (_controller == null || kIsWeb) return;
     if (!_isIsrfPageUrl()) return;
@@ -468,8 +590,10 @@ class _WebViewPageState extends State<WebViewPage> {
       final name = prefs.getString('name') ?? '';
       final email = prefs.getString('email') ?? '';
       final mobile = prefs.getString('mobile') ?? '';
+      final contactnumber = prefs.getString('contactnumber') ?? '';
       final designation = prefs.getString('designation') ?? '';
       final userid = prefs.getString('userid') ?? '';
+      final patientid = prefs.getString('patientid') ?? '';
       var empid = prefs.getString('empid') ?? '';
       Map<String, dynamic> perms = const {};
       if (empid.trim().isEmpty) {
@@ -499,10 +623,14 @@ class _WebViewPageState extends State<WebViewPage> {
         }
       }
 
+      final effectiveMobile = mobile.trim().isNotEmpty ? mobile : contactnumber;
+      final effectivePatientId =
+          patientid.trim().isNotEmpty ? patientid : userid;
+
       // If we have nothing, don't overwrite anything.
       if (name.trim().isEmpty &&
           email.trim().isEmpty &&
-          mobile.trim().isEmpty &&
+          effectiveMobile.trim().isEmpty &&
           userid.trim().isEmpty) {
         return;
       }
@@ -595,10 +723,12 @@ class _WebViewPageState extends State<WebViewPage> {
               var ehandor = Object.assign({}, ${jsonEncode(perms)}, {
                 status: 'success',
                 userid: '${_jsEscape(userid)}',
+                patientid: '${_jsEscape(effectivePatientId)}',
                 email: '${_jsEscape(email)}',
                 empid: '${_jsEscape(empid.trim().isNotEmpty ? empid : userid)}',
                 name: '${_jsEscape(name)}',
-                mobile: '${_jsEscape(mobile)}',
+                mobile: '${_jsEscape(effectiveMobile)}',
+                contactnumber: '${_jsEscape(effectiveMobile)}',
                 designation: '${_jsEscape(designation)}',
                 picture: '${_jsEscape(picture)}'
               });
@@ -606,9 +736,11 @@ class _WebViewPageState extends State<WebViewPage> {
               var profile = {
                 name: '${_jsEscape(name)}',
                 email: '${_jsEscape(email)}',
-                mobile: '${_jsEscape(mobile)}',
+                mobile: '${_jsEscape(effectiveMobile)}',
+                contactnumber: '${_jsEscape(effectiveMobile)}',
                 empid: '${_jsEscape(empid.trim().isNotEmpty ? empid : userid)}',
                 userid: '${_jsEscape(userid)}',
+                patientid: '${_jsEscape(effectivePatientId)}',
                 designation: '${_jsEscape(designation)}',
                 picture: '${_jsEscape(picture)}'
               };
@@ -617,8 +749,10 @@ class _WebViewPageState extends State<WebViewPage> {
               if (!isBlank(parsed.name)) { profile.name = parsed.name; ehandor.name = parsed.name; }
               if (!isBlank(parsed.email)) { profile.email = parsed.email; ehandor.email = parsed.email; }
               if (!isBlank(parsed.mobile)) { profile.mobile = parsed.mobile; ehandor.mobile = parsed.mobile; }
+              if (!isBlank(parsed.contactnumber)) { profile.contactnumber = parsed.contactnumber; ehandor.contactnumber = parsed.contactnumber; }
               if (!isBlank(parsed.empid)) { profile.empid = parsed.empid; ehandor.empid = parsed.empid; }
               if (!isBlank(parsed.userid)) { profile.userid = parsed.userid; ehandor.userid = parsed.userid; }
+              if (!isBlank(parsed.patientid)) { profile.patientid = parsed.patientid; ehandor.patientid = parsed.patientid; }
               if (!isBlank(parsed.designation)) { profile.designation = parsed.designation; ehandor.designation = parsed.designation; }
               if (!isBlank(parsed.picture)) { profile.picture = parsed.picture; ehandor.picture = parsed.picture; }
 
