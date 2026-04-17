@@ -1,6 +1,7 @@
 // lib/models/op_question_model.dart
 
 class QuestionSet {
+  final String id;
   final String category;
   final String categoryk;
   final String categorym;
@@ -8,6 +9,7 @@ class QuestionSet {
   final List<Question> questions;
 
   QuestionSet({
+    this.id = '',
     required this.category,
     required this.type,
     required this.questions,
@@ -28,6 +30,13 @@ class QuestionSet {
     print("═══════════════════════════════════════════════════════════");
 
     return QuestionSet(
+      id: (json['id'] ??
+              json['setup_id'] ??
+              json['setupid'] ??
+              json['setid'] ??
+              json['set_id'] ??
+              '')
+          .toString(),
       category: category,
       categoryk: categoryk,
       categorym: categorym,
@@ -40,6 +49,7 @@ class QuestionSet {
 
   Map<String, dynamic> toJson() {
     return {
+      'id': id,
       'category': category,
       'categoryk': categoryk,
       'categorym': categorym,

@@ -333,7 +333,7 @@ class TicketApiService {
     if (capa != null && capa.isNotEmpty) {
       payload['capa'] = capa;
     }
-    if (departmentId != null && departmentId.isNotEmpty) {
+    if (status != 'Transfered' && departmentId != null && departmentId.isNotEmpty) {
       payload['departmentId'] = departmentId;
     }
     if (reason != null && reason.isNotEmpty) {
@@ -352,12 +352,18 @@ class TicketApiService {
     print('🔵 [DEBUG] Department Transfer: $departmentTransfer');
     print('🔵 [DEBUG] Department ID: $departmentId');
     print('🔵 [DEBUG] Source Department Transfer: $sourceDepartmentTransfer');
-    if (status == 'Transfered' && departmentTransfer != null && departmentTransfer.isNotEmpty) {
-      payload['departmentTransfer'] = departmentTransfer; // Support both field names
+    if (status == 'Transfered' &&
+        departmentTransfer != null &&
+        departmentTransfer.isNotEmpty) {
+      payload['departmentTransfer'] =
+          departmentTransfer; // Destination (target) department id
     }
 
-    if (status == 'Transfered' && departmentId != null && departmentId.isNotEmpty) {
-      payload['sourceDepartmentTransfer'] = departmentId; // Support both field names
+    if (status == 'Transfered' &&
+        sourceDepartmentTransfer != null &&
+        sourceDepartmentTransfer.isNotEmpty) {
+      payload['sourceDepartmentTransfer'] =
+          sourceDepartmentTransfer; // Source (current) department id
     }
 
     if (additionalPayload != null && additionalPayload.isNotEmpty) {

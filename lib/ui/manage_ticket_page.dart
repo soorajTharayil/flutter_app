@@ -11,6 +11,7 @@ import '../services/incident_workflow_api.dart';
 import '../services/employee_complaint_navigation.dart';
 import '../model/ticket_detail_model.dart';
 import '../services/ip_question_service.dart';
+import '../services/op_question_service.dart';
 import '../services/department_service.dart';
 import '../model/op_question_model.dart';
 import '../model/department_model.dart';
@@ -1408,18 +1409,18 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
           });
         }
       } else if (widget.module == 'OP') {
-        // For OP module, use department.php
+        // For OP module, use department.php question_set (same pattern as IP)
         final patientId = widget.patientId ?? '';
         if (patientId.isNotEmpty) {
           print('🔵 [DEBUG] Calling OP department API');
-          print('🔵 [DEBUG] Calling department.php for OP module');
-          final departments = await fetchDepartments(patientId);
+          print('🔵 [DEBUG] Calling department.php question_set for OP module');
+          final questionSets = await fetchQuestionSets(patientId, 'op_transfer');
           
-          print('🔵 [DEBUG] department.php response count: ${departments.length}');
-          print('🔵 [DEBUG] department.php response: ${departments.map((d) => d.title).toList()}');
+          print('🔵 [DEBUG] department.php question_set count: ${questionSets.length}');
+          print('🔵 [DEBUG] department.php question_set categories: ${questionSets.map((qs) => qs.category).toList()}');
           
           setState(() {
-            _transferDepartments = departments;
+            _transferDepartments = questionSets;
             _isLoadingDepartments = false;
           });
         } else {
@@ -2273,7 +2274,7 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
                                 ? dept.category 
                                 : (dept is Department ? dept.title : dept.toString());
                             final value = dept is QuestionSet 
-                                ? dept.category 
+                                ? _questionSetTransferId(dept)
                                 : (dept is Department ? dept.title : title);
                             
                             return DropdownMenuItem<String>(
@@ -2589,11 +2590,55 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     print('🟡 [DEBUG] Ticket ID: ${widget.ticketId}');
     print('🟡 [DEBUG] Module: ${widget.module}');
 
+    final departmentTransfer = _selectedDepartmentId?.trim();
+    final sourceDepartmentTransfer = _resolveSourceDepartmentTransferId();
+    print('🟡 [DEBUG] Department Transfer ID: $departmentTransfer');
+    print('🟡 [DEBUG] Source Department Transfer ID: $sourceDepartmentTransfer');
+
     await _submitTicketDetails(
       status: 'Transfered',
-      departmentId: _selectedDepartmentId,
+      departmentTransfer: departmentTransfer,
+      sourceDepartmentTransfer: sourceDepartmentTransfer,
       reason: reason,
     );
+  }
+
+  String _questionSetTransferId(QuestionSet q) {
+    final id = q.id.trim();
+    if (id.isNotEmpty) return id;
+    final type = q.type.trim();
+    if (RegExp(r'^\d+$').hasMatch(type)) return type;
+    final m = RegExp(r'^set(\d+)$', caseSensitive: false).firstMatch(type);
+    if (m != null) return m.group(1)!;
+    if (q.questions.isNotEmpty) {
+      final qid = q.questions.first.id.trim();
+      if (RegExp(r'^\d+$').hasMatch(qid)) return qid;
+    }
+    return q.category;
+  }
+
+  String? _resolveSourceDepartmentTransferId() {
+    final sourceCandidates = <String>[
+      _ticketDetail?.departDesc ?? '',
+      _ticketDetail?.departmentName ?? '',
+      _ticketDetail?.reasonText ?? '',
+    ].map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+
+    String normalize(String s) =>
+        s.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+
+    for (final dept in _transferDepartments) {
+      if (dept is! QuestionSet) continue;
+      final id = _questionSetTransferId(dept).trim();
+      if (id.isEmpty) continue;
+      final catNorm = normalize(dept.category);
+      for (final source in sourceCandidates) {
+        if (catNorm == normalize(source)) {
+          return id;
+        }
+      }
+    }
+    return null;
   }
 
   /// Submit ticket details to API
@@ -2604,6 +2649,8 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
     String? rca,
     String? capa,
     String? departmentId,
+    String? departmentTransfer,
+    String? sourceDepartmentTransfer,
     String? reason,
   }) async {
     print('🟡 [DEBUG] ========================================');
@@ -2647,6 +2694,8 @@ class _ManageTicketPageState extends State<ManageTicketPage> {
         rca: rca,
         capa: capa,
         departmentId: departmentId,
+        departmentTransfer: departmentTransfer,
+        sourceDepartmentTransfer: sourceDepartmentTransfer,
         reason: reason,
       );
 
