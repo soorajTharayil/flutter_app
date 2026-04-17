@@ -133,28 +133,18 @@ class _WebViewPageState extends State<WebViewPage> {
 
   Future<List<String>> _onAndroidFileSelector(FileSelectorParams params) async {
     try {
-      final acceptTypes = params.acceptTypes
-          .map((e) => e.trim().toLowerCase())
-          .where((e) => e.isNotEmpty)
-          .toList();
-      final shouldRestrictToImages =
-          acceptTypes.any((t) => t == 'image/*' || t.startsWith('image/'));
-
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: params.mode == FileSelectorMode.openMultiple,
-        type: shouldRestrictToImages ? FileType.image : FileType.any,
+        // ISR forms can provide mixed/quirky accept values; let user pick
+        // and pass files through to WebView.
+        type: FileType.any,
         withData: true,
         withReadStream: true,
       );
       if (result == null || result.files.isEmpty) return [];
 
       final paths = <String>[];
-      var skippedUnsupported = false;
       for (final f in result.files) {
-        if (!_isAcceptedByInputAcceptTypes(f, acceptTypes)) {
-          skippedUnsupported = true;
-          continue;
-        }
         var p = f.path;
         if (p == null || p.isEmpty) {
           final bytes = f.bytes;
@@ -184,23 +174,17 @@ class _WebViewPageState extends State<WebViewPage> {
           }
         }
         if (p != null && p.isNotEmpty) {
-          paths.add(p);
-        } else {
-          skippedUnsupported = true;
+          // Android WebView expects URI-style values from file selector.
+          // Returning raw filesystem paths can cause "selected but not attached".
+          if (p.startsWith('content://') ||
+              p.startsWith('file://') ||
+              p.startsWith('http://') ||
+              p.startsWith('https://')) {
+            paths.add(p);
+          } else {
+            paths.add(Uri.file(p).toString());
+          }
         }
-      }
-
-      if (skippedUnsupported && mounted) {
-        final allowedHint = _buildAllowedFormatsHint(acceptTypes);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              allowedHint.isEmpty
-                  ? 'Selected file type is not supported for this upload.'
-                  : 'Selected file type is not supported. Allowed: $allowedHint',
-            ),
-          ),
-        );
       }
       return paths;
     } catch (_) {
