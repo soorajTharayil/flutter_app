@@ -385,9 +385,9 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Primary Consultant *',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        Text(
+          '${context.opTranslate('primary_consultant')} *',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 6),
         selectedDepartment == null
@@ -416,7 +416,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                     ),
                     child: Center(
                       child: Text(
-                        'No primary consultants for this speciality',
+                        context.opTranslate('no_consultants_for_speciality'),
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -431,7 +431,10 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                             names.contains(selectedPrimaryConsultant)
                         ? selectedPrimaryConsultant
                         : null,
-                    decoration: inputDecoration('Primary Consultant').copyWith(
+                    decoration: inputDecoration(
+                            context.opTranslate(
+                                'select_primary_consultant_placeholder'))
+                        .copyWith(
                       prefixIcon: const Icon(Icons.person_outline),
                     ),
                     items: names
@@ -459,7 +462,7 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                       if (!_isSagarJnrWc) return null;
                       if (names.isEmpty) return null;
                       if (value == null || value.isEmpty) {
-                        return 'Required';
+                        return context.opTranslate('field_required');
                       }
                       return null;
                     },
@@ -471,10 +474,10 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
 
   Widget buildDropdown() {
     final deptLabel = _isSagarJnrWc
-        ? 'Speciality *'
+        ? '${context.opTranslate('speciality')} *'
         : '${context.opTranslate('select_department').replaceAll('Select ', '')} *';
     final deptHint = _isSagarJnrWc
-        ? 'Select Speciality'
+        ? context.opTranslate('select_speciality')
         : context.opTranslate('select_department');
 
     return Column(
@@ -544,7 +547,11 @@ class _OpFeedbackPageState extends State<OpFeedbackPage> {
                       }
                     },
                     validator: (value) => value == null
-                        ? context.opTranslate('department_required')
+                        ? context.opTranslate(
+                            _isSagarJnrWc
+                                ? 'speciality_required'
+                                : 'department_required',
+                          )
                         : null,
                   );
                 },

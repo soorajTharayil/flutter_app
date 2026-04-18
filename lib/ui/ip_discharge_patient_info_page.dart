@@ -162,8 +162,8 @@ class _IPDischargePatientInfoPageState
       if (_selectedSpecialityTitle == null ||
           _selectedSpecialityTitle!.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select Speciality'),
+          SnackBar(
+            content: Text(context.opTranslate('please_select_speciality')),
             backgroundColor: Colors.red,
           ),
         );
@@ -172,8 +172,8 @@ class _IPDischargePatientInfoPageState
       if (_selectedPrimaryConsultant == null ||
           _selectedPrimaryConsultant!.trim().isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select Primary Consultant'),
+          SnackBar(
+            content: Text(context.opTranslate('please_select_primary_consultant')),
             backgroundColor: Colors.red,
           ),
         );
@@ -514,9 +514,9 @@ class _IPDischargePatientInfoPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Speciality *',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        Text(
+          '${context.opTranslate('speciality')} *',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 6),
         _consultants.isEmpty
@@ -542,7 +542,9 @@ class _IPDischargePatientInfoPageState
                         _consultants.any((c) => c.title == _selectedSpecialityTitle)
                     ? _selectedSpecialityTitle
                     : null,
-                decoration: inputDecoration('Select Speciality').copyWith(
+                decoration:
+                    inputDecoration(context.opTranslate('select_speciality'))
+                        .copyWith(
                   prefixIcon: const Icon(Icons.medical_services_outlined),
                 ),
                 items: _consultants
@@ -566,8 +568,9 @@ class _IPDischargePatientInfoPageState
                     _formKey.currentState?.validate();
                   }
                 },
-                validator: (value) =>
-                    (value == null || value.isEmpty) ? 'Required' : null,
+                validator: (value) => (value == null || value.isEmpty)
+                    ? context.opTranslate('field_required')
+                    : null,
               ),
         const SizedBox(height: 16),
       ],
@@ -579,9 +582,9 @@ class _IPDischargePatientInfoPageState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Primary Consultant *',
-          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+        Text(
+          '${context.opTranslate('primary_consultant')} *',
+          style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 6),
         _selectedSpecialityTitle == null
@@ -610,7 +613,7 @@ class _IPDischargePatientInfoPageState
                     ),
                     child: Center(
                       child: Text(
-                        'No primary consultants for this speciality',
+                        context.opTranslate('no_consultants_for_speciality'),
                         style: TextStyle(
                           color: Colors.grey[600],
                           fontSize: 14,
@@ -624,7 +627,9 @@ class _IPDischargePatientInfoPageState
                             names.contains(_selectedPrimaryConsultant)
                         ? _selectedPrimaryConsultant
                         : null,
-                    decoration: inputDecoration('Select Primary Consultant')
+                    decoration: inputDecoration(
+                            context.opTranslate(
+                                'select_primary_consultant_placeholder'))
                         .copyWith(
                       prefixIcon: const Icon(Icons.person_outline),
                     ),
@@ -648,8 +653,9 @@ class _IPDischargePatientInfoPageState
                         _formKey.currentState?.validate();
                       }
                     },
-                    validator: (value) =>
-                        (value == null || value.isEmpty) ? 'Required' : null,
+                    validator: (value) => (value == null || value.isEmpty)
+                        ? context.opTranslate('field_required')
+                        : null,
                   ),
         const SizedBox(height: 16),
       ],
