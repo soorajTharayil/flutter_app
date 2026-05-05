@@ -39,10 +39,11 @@ class _HomePageState extends State<HomePage> {
   Map<int, bool> _hoveredItems = {};
 
   /// Some domains use different web URL paths for the same module.
-  /// Example: `sagarjnrwc` and `archive-vasavi` use `/pcf` instead of
+  /// Example: `sagarjnrwc`, `vasavi`, and `archive-vasavi` use `/pcf` instead of
   /// `/pcrf` for IP Concern/Request.
   static const List<String> _pcfWebUrlDomains = [
     'sagarjnrwc',
+    'vasavi',
     'archive-vasavi',
   ];
 

@@ -45,6 +45,7 @@ class DeviceApprovalController extends CI_Controller
      *   "user_id": "123",
      *   "name": "John Doe",
      *   "email": "john@example.com",
+     *   "mobile": "9876543210",
      *   "device_id": "abc123...",
      *   "device_name": "iPhone 12",
      *   "platform": "iOS",
@@ -75,8 +76,28 @@ class DeviceApprovalController extends CI_Controller
                 return;
             }
 
-            // Validate required fields
-            $required_fields = array('user_id', 'name', 'email', 'device_id', 'device_name', 'platform', 'domain');
+            // Contact: email OR mobile (users created with mobile-only have no email)
+            $email = isset($input['email']) ? trim($input['email']) : '';
+            $mobile = isset($input['mobile']) ? trim($input['mobile']) : '';
+            if ($email === '' && $mobile === '') {
+                $this->output->set_status_header(400);
+                echo json_encode(array(
+                    'status' => 'error',
+                    'message' => 'Missing required field: email or mobile'
+                ));
+                return;
+            }
+
+            // Stored in legacy `email` column for admin UI / compatibility
+            $contact_email = $email !== '' ? $email : $mobile;
+
+            $name = isset($input['name']) ? trim($input['name']) : '';
+            if ($name === '') {
+                $name = $contact_email;
+            }
+
+            // Validate required fields (name may be filled from contact above)
+            $required_fields = array('user_id', 'device_id', 'device_name', 'platform', 'domain');
             foreach ($required_fields as $field) {
                 if (empty($input[$field])) {
                     $this->output->set_status_header(400);
@@ -86,6 +107,10 @@ class DeviceApprovalController extends CI_Controller
                     ));
                     return;
                 }
+            }
+
+            if ($name === '') {
+                $name = 'User ' . trim($input['user_id']);
             }
 
             // Check if device is already approved (one-time approval)
@@ -219,8 +244,8 @@ class DeviceApprovalController extends CI_Controller
             // device_name: exact value from Flutter for mobile, enhanced for web
             $request_data = array(
                 'user_id' => intval($input['user_id']),
-                'name' => trim($input['name']),
-                'email' => trim($input['email']),
+                'name' => $name,
+                'email' => $contact_email,
                 'device_name' => $device_name, // Exact value from Flutter (mobile) or enhanced (web)
                 'platform' => $platform,
                 'device_id' => $device_id,

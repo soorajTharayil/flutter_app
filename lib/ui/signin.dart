@@ -12,6 +12,14 @@ import 'package:devkitflutter/services/ip_service.dart';
 import 'package:devkitflutter/ui/waiting_approval_page.dart';
 import 'package:devkitflutter/ui/domain_login_page.dart';
 
+String _digitsOnlyLoginId(String s) =>
+    s.replaceAll(RegExp(r'\D'), '');
+
+bool _looksLikeMobileLoginId(String s) {
+  final d = _digitsOnlyLoginId(s);
+  return d.length >= 10 && d.length <= 15;
+}
+
 class SignIn extends StatefulWidget {
   const SignIn({Key? key}) : super(key: key);
 
@@ -186,9 +194,22 @@ class _SignInState extends State<SignIn> {
             responseData['employeeid']?.toString() ??
             responseData['employee_id']?.toString() ??
             '';
-        final email = responseData['email']?.toString() ?? '';
-        final name = responseData['name']?.toString() ?? email;
-        final mobile = responseData['mobile']?.toString() ?? '';
+        var email = responseData['email']?.toString().trim() ?? '';
+        var mobile = responseData['mobile']?.toString().trim() ?? '';
+        final enteredUserId = _emailController.text.trim();
+        if (mobile.isEmpty && _looksLikeMobileLoginId(enteredUserId)) {
+          mobile = _digitsOnlyLoginId(enteredUserId);
+        }
+        var name = responseData['name']?.toString().trim() ?? '';
+        if (name.isEmpty) {
+          if (email.isNotEmpty) {
+            name = email;
+          } else if (mobile.isNotEmpty) {
+            name = mobile;
+          } else {
+            name = enteredUserId.isNotEmpty ? enteredUserId : userId;
+          }
+        }
         final designation = responseData['designation']?.toString() ?? '';
 
         // Save user data
@@ -248,6 +269,7 @@ class _SignInState extends State<SignIn> {
           userId: userId,
           name: name,
           email: email,
+          mobile: mobile,
           deviceId: deviceId,
           deviceName: deviceName,
           platform: platform,
@@ -439,7 +461,7 @@ class _SignInState extends State<SignIn> {
                             const SizedBox(height: 16),
                             TextField(
                               controller: _emailController,
-                              keyboardType: TextInputType.emailAddress,
+                              keyboardType: TextInputType.text,
                               style: TextStyle(
                                 color: Colors.black87,
                                 fontSize: 16,
@@ -463,7 +485,7 @@ class _SignInState extends State<SignIn> {
                                     borderRadius: BorderRadius.circular(10),
                                     borderSide: BorderSide(color: _mainColor),
                                   ),
-                                  hintText: 'Username or email',
+                                  hintText: 'Email or mobile number',
                                   hintStyle: TextStyle(
                                     color: Colors.grey[600],
                                     fontSize: 16,

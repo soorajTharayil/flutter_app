@@ -290,6 +290,7 @@ class DeviceService {
     required String userId,
     required String name,
     required String email,
+    String mobile = '',
     required String deviceId,
     required String deviceName,
     required String platform,
@@ -298,11 +299,20 @@ class DeviceService {
   }) async {
     try {
       final requestUrl = await _getDeviceApprovalRequestUrl();
-      
+
+      final trimmedEmail = email.trim();
+      final trimmedMobile = mobile.trim();
+      // Older backends only validate `email`; mobile-only users must still send a
+      // non-empty email field (use the same contact value).
+      final emailForApi = trimmedEmail.isNotEmpty
+          ? trimmedEmail
+          : (trimmedMobile.isNotEmpty ? trimmedMobile : userId.trim());
+
       final requestBody = {
         'user_id': userId,
         'name': name,
-        'email': email,
+        'email': emailForApi,
+        'mobile': trimmedMobile,
         'device_id': deviceId,
         'device_name': deviceName,
         'platform': platform,
